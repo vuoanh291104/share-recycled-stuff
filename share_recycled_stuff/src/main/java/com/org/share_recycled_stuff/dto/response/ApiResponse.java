@@ -20,7 +20,7 @@ public class ApiResponse<T> {
     private String timestamp;
     private T result;
 
-    public static <T> ApiResponse<T> noti (int code, String message, String path) {
+    public static <T> ApiResponse<T> noti(int code, String message, String path) {
         return ApiResponse.<T>builder()
                 .code(code)
                 .path(path)
