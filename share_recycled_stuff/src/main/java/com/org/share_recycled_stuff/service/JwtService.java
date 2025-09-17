@@ -1,0 +1,22 @@
+package com.org.share_recycled_stuff.service;
+
+import com.org.share_recycled_stuff.config.CustomUserDetail;
+import com.org.share_recycled_stuff.security.jwt.JwtToken;
+
+import java.util.List;
+
+public interface JwtService {
+    JwtToken generateTokens(CustomUserDetail userDetails);
+
+    String getEmailFromToken(String token);
+
+    Long getAccountIdFromToken(String token);
+
+    List<String> getRolesFromToken(String token);
+
+    boolean validateToken(String token);
+
+    boolean isAccessToken(String token);
+
+    boolean isRefreshToken(String token);
+}
