@@ -1,31 +1,38 @@
 package com.org.share_recycled_stuff.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+        @Index(name = "idx_user_account_id", columnList = "account_id"),
+        @Index(name = "idx_user_phone", columnList = "phone")
+})
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(exclude = {"account", "userReviews"})
+@ToString(exclude = {"account", "userReviews"})
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @JsonBackReference("account-user")
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", unique = true, nullable = false)
     private Account account;
 
-    @Column(nullable = false)
-    private String name;
+    @Column(name = "full_name", nullable = false, length = 255)
+    private String fullName;
 
     @Column(length = 20)
     private String phone;
@@ -55,13 +62,25 @@ public class User {
     private BigDecimal ratingAverage = BigDecimal.ZERO;
 
     @Column(name = "total_ratings")
-    private int totalRatings = 0;
+    private Integer totalRatings = 0;
 
-    @CreationTimestamp
+    @OneToMany(mappedBy = "reviewedUser", fetch = FetchType.LAZY)
+    private Set<UserReviews> userReviews = new HashSet<>();
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

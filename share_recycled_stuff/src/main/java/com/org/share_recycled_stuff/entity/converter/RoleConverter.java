@@ -8,17 +8,11 @@ import jakarta.persistence.Converter;
 public class RoleConverter implements AttributeConverter<Role, Integer> {
     @Override
     public Integer convertToDatabaseColumn(Role role) {
-        if (role == null) {
-            return null;
-        }
-        return role.getValue();
+        return role != null ? role.getCode() : null;
     }
 
     @Override
     public Role convertToEntityAttribute(Integer dbData) {
-        if (dbData == null) {
-            return null;
-        }
-        return Role.fromValue(dbData);
+        return dbData != null ? Role.fromCode(dbData) : null;
     }
 }
