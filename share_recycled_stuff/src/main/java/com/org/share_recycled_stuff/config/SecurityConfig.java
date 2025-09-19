@@ -77,8 +77,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
-                                "/webjars/**",
-                                "/register"
+                                "/webjars/**"
                         ).permitAll()
                         // Admin endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
