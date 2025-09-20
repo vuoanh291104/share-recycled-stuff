@@ -7,18 +7,18 @@ import java.util.Arrays;
 
 @Getter
 @RequiredArgsConstructor
-public enum Role {
-    CUSTOMER(1, "Customer"),
-    PROXY_SELLER(2, "Proxy Seller"),
-    ADMIN(3, "Admin");
+public enum DeliveryMethod {
+    IN_APP(1, "In-App"),
+    EMAIL(2, "Email"),
+    BOTH(3, "Both");
 
     private final int code;
     private final String displayName;
 
-    public static Role fromCode(int code) {
+    public static DeliveryMethod fromCode(int code) {
         return Arrays.stream(values())
-                .filter(role -> role.code == code)
+                .filter(method -> method.code == code)
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Invalid role code: " + code));
+                .orElseThrow(() -> new IllegalArgumentException("Invalid delivery method code: " + code));
     }
 }
