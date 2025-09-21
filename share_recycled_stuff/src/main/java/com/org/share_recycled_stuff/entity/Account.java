@@ -43,6 +43,9 @@ public class Account {
     @Column(name = "verification_token")
     private String verificationToken;
 
+    @Column(name = "verification_expiry")
+    private LocalDateTime verificationExpiry;
+
     @Column(name = "reset_password_token")
     private String resetPasswordToken;
 
