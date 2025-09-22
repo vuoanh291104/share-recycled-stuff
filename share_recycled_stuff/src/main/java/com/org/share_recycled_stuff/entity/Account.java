@@ -47,8 +47,14 @@ public class Account {
     @Column(name = "locked_at")
     private LocalDateTime lockedAt;
 
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
+
     @Column(name = "verification_token", length = 255)
     private String verificationToken;
+
+    @Column(name = "verification_expires")
+    private LocalDateTime verificationExpiry;
 
     @Column(name = "reset_password_token", length = 255)
     private String resetPasswordToken;

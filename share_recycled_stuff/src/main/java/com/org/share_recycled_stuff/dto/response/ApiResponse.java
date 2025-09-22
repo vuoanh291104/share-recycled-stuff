@@ -20,6 +20,32 @@ public class ApiResponse<T> {
     private String timestamp;
     private T result;
 
+    public static <T> ApiResponse<T> success(String message, T result) {
+        return ApiResponse.<T>builder()
+                .code(200)
+                .message(message)
+                .timestamp(Instant.now().toString())
+                .result(result)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> error(int code, String message) {
+        return ApiResponse.<T>builder()
+                .code(code)
+                .message(message)
+                .timestamp(Instant.now().toString())
+                .build();
+    }
+
+    public static <T> ApiResponse<T> error(int code, String message, String path) {
+        return ApiResponse.<T>builder()
+                .code(code)
+                .message(message)
+                .path(path)
+                .timestamp(Instant.now().toString())
+                .build();
+    }
+
     public static <T> ApiResponse<T> noti(int code, String message, String path) {
         return ApiResponse.<T>builder()
                 .code(code)
