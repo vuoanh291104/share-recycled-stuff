@@ -10,6 +10,7 @@ import com.org.share_recycled_stuff.exception.ErrorCode;
 import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.UserRepository;
 import com.org.share_recycled_stuff.service.AuthService;
+import com.org.share_recycled_stuff.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,8 @@ public class AuthServiceImpl implements AuthService {
     private UserRepository  userRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private EmailService emailService;
     @Override
     public VerificationResponse register(RegisterRequest request) {
 
@@ -46,22 +49,35 @@ public class AuthServiceImpl implements AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .isVerified(false)
                 .verificationToken(token)
-                .verificationExpiry(expiresAt)
+//                .verificationExpiry(expiresAt)
                 .build();
 
         accountRepository.save(account);
 
         User user = new User();
         user.setAccount(account);
-        user.setName(request.getName());
+        user.setFullName(request.getFullName());
         user.setPhone(request.getPhoneNumber());
         user.setWard(request.getWard());
         user.setCity(request.getCity());
 
         userRepository.save(user);
 
-        return new VerificationResponse(account.getEmail(), expiresAt);
+        emailService.sendVerificationEmail(account.getEmail(), token);
+        return new VerificationResponse(account.getEmail(), token,expiresAt);
 
     }
+    @Override
+    public String verifyAccount(String token) {
+        Account account = accountRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
+
+        account.setVerified(true);
+        account.setVerificationToken(null);
+        accountRepository.save(account);
+
+        return "Xác thực thành công";
+    }
+
 
 }

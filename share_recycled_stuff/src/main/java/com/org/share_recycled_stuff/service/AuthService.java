@@ -4,4 +4,5 @@ import com.org.share_recycled_stuff.dto.response.VerificationResponse;
 
 public interface AuthService {
     VerificationResponse register(RegisterRequest request);
+    String verifyAccount(String token);
 }

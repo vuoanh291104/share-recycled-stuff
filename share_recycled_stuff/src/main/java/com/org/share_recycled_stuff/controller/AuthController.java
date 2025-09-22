@@ -40,4 +40,21 @@ public class AuthController {
 
         return ResponseEntity.ok(apiResponse);
     }
+    @GetMapping("/verify")
+    public ResponseEntity<ApiResponse<String>> verifyAccount(
+            @RequestParam("token") String token,
+            HttpServletRequest httpRequest) {
+
+        String response = authService.verifyAccount(token);
+
+        ApiResponse<String> apiResponse = ApiResponse.<String>builder()
+                .code(HttpStatus.OK.value())
+                .message("Xác thực tài khoản thành công.")
+                .path(httpRequest.getRequestURI())
+                .timestamp(Instant.now().toString())
+                .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
 }

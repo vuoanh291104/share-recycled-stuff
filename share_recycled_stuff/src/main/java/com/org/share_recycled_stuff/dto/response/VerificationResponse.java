@@ -10,5 +10,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class VerificationResponse {
     private String email;
+    private String verificationToken;
     private LocalDateTime expiresAt;
 }
