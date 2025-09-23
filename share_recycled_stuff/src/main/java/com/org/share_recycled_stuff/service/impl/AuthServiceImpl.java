@@ -14,6 +14,7 @@ import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.UserRepository;
 import com.org.share_recycled_stuff.security.jwt.JwtToken;
 import com.org.share_recycled_stuff.service.AuthService;
+import com.org.share_recycled_stuff.service.EmailService;
 import com.org.share_recycled_stuff.service.JwtService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +40,8 @@ public class AuthServiceImpl implements AuthService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtService jwtService;
-
+    @Autowired
+    private EmailService emailService;
     @Value("${app.auth.login.max-attempts:" + AuthConstants.DEFAULT_MAX_LOGIN_ATTEMPTS + "}")
     private int maxLoginAttempts;
     
@@ -76,8 +78,19 @@ public class AuthServiceImpl implements AuthService {
         user.setCity(request.getCity());
 
         userRepository.save(user);
+        emailService.sendVerificationEmail(account.getEmail(), token);
+        return new VerificationResponse(account.getEmail(),expiresAt,token);
+    }
+    @Override
+    public String verifyAccount(String token) {
+        Account account = accountRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
 
-        return new VerificationResponse(account.getEmail(), expiresAt);
+        account.setVerified(true);
+        account.setVerificationToken(null);
+        accountRepository.save(account);
+
+        return "Xác thực thành công";
     }
 
     @Override
