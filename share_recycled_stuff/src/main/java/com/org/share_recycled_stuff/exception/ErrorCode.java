@@ -13,7 +13,7 @@ public enum ErrorCode {
     INVALID_CREDENTIALS("AUTH_005", "Invalid username or password", HttpStatus.UNAUTHORIZED),
     ACCOUNT_DISABLED("AUTH_006", "Account has been disabled", HttpStatus.UNAUTHORIZED),
     ACCOUNT_LOCKED("AUTH_007", "Account has been locked", HttpStatus.UNAUTHORIZED),
-
+    ACCOUNT_ALREADY_VERIFIED("AUTH_008", "Account has already been verified", HttpStatus.BAD_REQUEST),
     // User related
     USER_NOT_FOUND("USER_001", "User not found", HttpStatus.NOT_FOUND),
     USER_ALREADY_EXISTS("USER_002", "User already exists", HttpStatus.CONFLICT),

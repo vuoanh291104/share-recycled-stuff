@@ -11,4 +11,5 @@ import java.time.LocalDateTime;
 public class VerificationResponse {
     private String email;
     private LocalDateTime expiresAt;
+    private String verificationToken;
 }
