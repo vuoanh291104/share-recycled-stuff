@@ -42,8 +42,8 @@ public enum ErrorCode {
     SERVICE_UNAVAILABLE("SYS_002", "Service temporarily unavailable", HttpStatus.SERVICE_UNAVAILABLE),
     DATABASE_ERROR("SYS_003", "Database error occurred", HttpStatus.INTERNAL_SERVER_ERROR),
     METHOD_NOT_SUPPORTED("SYS_004", "HTTP method not supported", HttpStatus.METHOD_NOT_ALLOWED),
-    SYSTEM_RESOURCE_NOT_FOUND("SYS_005", "The requested resource was not found", HttpStatus.NOT_FOUND);
-
+    SYSTEM_RESOURCE_NOT_FOUND("SYS_005", "The requested resource was not found", HttpStatus.NOT_FOUND),
+    EMAIL_SENDING_FAILED("SYS_006", "Sending email failed", HttpStatus.INTERNAL_SERVER_ERROR);
     private final String code;
     private final String message;
     private final HttpStatus httpStatus;

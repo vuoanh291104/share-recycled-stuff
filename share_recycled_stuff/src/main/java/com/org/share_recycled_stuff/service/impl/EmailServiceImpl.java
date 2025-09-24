@@ -1,5 +1,7 @@
 package com.org.share_recycled_stuff.service.impl;
 
+import com.org.share_recycled_stuff.exception.AppException;
+import com.org.share_recycled_stuff.exception.ErrorCode;
 import com.org.share_recycled_stuff.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -23,16 +25,18 @@ public class EmailServiceImpl implements EmailService {
                 + "<p>Vui lòng click link dưới đây để xác thực tài khoản:</p>"
                 + "<a href=\"" + verificationUrl + "\">Xác thực ngay</a>"
                 + "<p>Link sẽ hết hạn sau 15 phút.</p>";
-
+        sendEmail(to, subject, content);
+    }
+    private void sendEmail(String to, String subject, String content) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(content, true); // true = gửi HTML
+            helper.setText(content, true);
             mailSender.send(message);
         } catch (MessagingException e) {
-            throw new RuntimeException("Gửi email thất bại", e);
+            throw new AppException(ErrorCode.EMAIL_SENDING_FAILED, e);
         }
     }
 }
