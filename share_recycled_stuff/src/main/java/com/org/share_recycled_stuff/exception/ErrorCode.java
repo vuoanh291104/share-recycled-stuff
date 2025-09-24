@@ -13,7 +13,7 @@ public enum ErrorCode {
     INVALID_CREDENTIALS("AUTH_005", "Invalid username or password", HttpStatus.UNAUTHORIZED),
     ACCOUNT_DISABLED("AUTH_006", "Account has been disabled", HttpStatus.UNAUTHORIZED),
     ACCOUNT_LOCKED("AUTH_007", "Account has been locked", HttpStatus.UNAUTHORIZED),
-
+    ACCOUNT_ALREADY_VERIFIED("AUTH_008", "Account has already been verified", HttpStatus.BAD_REQUEST),
     // User related
     USER_NOT_FOUND("USER_001", "User not found", HttpStatus.NOT_FOUND),
     USER_ALREADY_EXISTS("USER_002", "User already exists", HttpStatus.CONFLICT),
@@ -42,8 +42,8 @@ public enum ErrorCode {
     SERVICE_UNAVAILABLE("SYS_002", "Service temporarily unavailable", HttpStatus.SERVICE_UNAVAILABLE),
     DATABASE_ERROR("SYS_003", "Database error occurred", HttpStatus.INTERNAL_SERVER_ERROR),
     METHOD_NOT_SUPPORTED("SYS_004", "HTTP method not supported", HttpStatus.METHOD_NOT_ALLOWED),
-    SYSTEM_RESOURCE_NOT_FOUND("SYS_005", "The requested resource was not found", HttpStatus.NOT_FOUND);
-
+    SYSTEM_RESOURCE_NOT_FOUND("SYS_005", "The requested resource was not found", HttpStatus.NOT_FOUND),
+    EMAIL_SENDING_FAILED("SYS_006", "Sending email failed", HttpStatus.INTERNAL_SERVER_ERROR);
     private final String code;
     private final String message;
     private final HttpStatus httpStatus;

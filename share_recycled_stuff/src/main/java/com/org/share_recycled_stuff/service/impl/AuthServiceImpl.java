@@ -8,13 +8,17 @@ import com.org.share_recycled_stuff.dto.response.LoginResponse;
 import com.org.share_recycled_stuff.dto.response.VerificationResponse;
 import com.org.share_recycled_stuff.entity.Account;
 import com.org.share_recycled_stuff.entity.User;
+import com.org.share_recycled_stuff.entity.UserRole;
+import com.org.share_recycled_stuff.entity.enums.Role;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
 import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.UserRepository;
 import com.org.share_recycled_stuff.security.jwt.JwtToken;
 import com.org.share_recycled_stuff.service.AuthService;
+import com.org.share_recycled_stuff.service.EmailService;
 import com.org.share_recycled_stuff.service.JwtService;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,7 +43,8 @@ public class AuthServiceImpl implements AuthService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtService jwtService;
-
+    @Autowired
+    private EmailService emailService;
     @Value("${app.auth.login.max-attempts:" + AuthConstants.DEFAULT_MAX_LOGIN_ATTEMPTS + "}")
     private int maxLoginAttempts;
     
@@ -70,16 +75,54 @@ public class AuthServiceImpl implements AuthService {
 
         User user = new User();
         user.setAccount(account);
-        user.setFullName(request.getName());
+        user.setFullName(request.getFullName());
         user.setPhone(request.getPhoneNumber());
         user.setWard(request.getWard());
         user.setCity(request.getCity());
 
         userRepository.save(user);
-
-        return new VerificationResponse(account.getEmail(), expiresAt);
+        emailService.sendVerificationEmail(account.getEmail(), token);
+        return new VerificationResponse(account.getEmail(),expiresAt,token);
     }
+    @Override
+    @Transactional
+    public String verifyAccount(String token) {
+        Account account = accountRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
 
+        account.setVerified(true);
+        account.setVerificationToken(null);
+
+        UserRole userRole = UserRole.builder()
+                .account(account)
+                .roleType(Role.CUSTOMER)
+                .assignedBy(null)
+                .build();
+        account.getRoles().add(userRole);
+        accountRepository.save(account);
+        return "Xác thực thành công";
+    }
+    @Override
+    public void resendVerification(String email) {
+
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        if (account.isVerified()) {
+            throw new AppException(ErrorCode.ACCOUNT_ALREADY_VERIFIED);
+        }
+
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
+
+        account.setVerificationToken(token);
+        account.setVerificationExpiry(expiresAt);
+        accountRepository.save(account);
+
+        emailService.sendVerificationEmail(account.getEmail(), token);
+
+        log.info("Resent verification email to {}", email);
+    }
     @Override
     public LoginResponse loginWithEmailAndPassword(LoginEmailRequest request) {
         log.info("Processing login request for email: {} from IP: {}", request.getEmail(), request.getClientIp());
