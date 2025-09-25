@@ -19,11 +19,15 @@ public enum ErrorCode {
     USER_ALREADY_EXISTS("USER_002", "User already exists", HttpStatus.CONFLICT),
     EMAIL_ALREADY_EXISTS("USER_003", "Email already exists", HttpStatus.CONFLICT),
     USERNAME_ALREADY_EXISTS("USER_004", "Username already exists", HttpStatus.CONFLICT),
+    ACCOUNT_NOT_FOUND("USER_005", "Account not found", HttpStatus.NOT_FOUND),
 
     // Item/Product related
     ITEM_NOT_FOUND("ITEM_001", "Item not found", HttpStatus.NOT_FOUND),
     ITEM_NOT_AVAILABLE("ITEM_002", "Item is not available", HttpStatus.BAD_REQUEST),
     ITEM_ALREADY_SHARED("ITEM_003", "Item has already been shared", HttpStatus.CONFLICT),
+
+    //Category
+    CATEGORY_NOT_FOUND("CATEGORY_001", "Category not found", HttpStatus.NOT_FOUND),
 
     // Validation
     INVALID_INPUT("VAL_001", "Invalid input: %s", HttpStatus.BAD_REQUEST),
