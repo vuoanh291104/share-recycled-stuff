@@ -124,6 +124,7 @@ public class AuthServiceImpl implements AuthService {
         log.info("Resent verification email to {}", email);
     }
     @Override
+    @Transactional
     public LoginResponse loginWithEmailAndPassword(LoginEmailRequest request) {
         log.info("Processing login request for email: {} from IP: {}", request.getEmail(), request.getClientIp());
         

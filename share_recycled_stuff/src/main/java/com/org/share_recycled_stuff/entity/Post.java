@@ -1,5 +1,7 @@
 package com.org.share_recycled_stuff.entity;
 
+import com.org.share_recycled_stuff.entity.enums.PostPurpose;
+import com.org.share_recycled_stuff.entity.enums.PostStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -39,10 +41,10 @@ public class Post {
     private BigDecimal price;
 
     @Column
-    private Integer purpose; // 1: FREE, 2: SALE, 3: NEWS
+    private PostPurpose purpose; // 1: FREE, 2: SALE, 3: NEWS
 
     @Column
-    private Integer status = 1; // 1: PENDING, 2: APPROVED, 3: REJECTED
+    private PostStatus status; // 1: PENDING, 2: APPROVED, 3: REJECTED
 
     @Column(name = "admin_review_comment", columnDefinition = "TEXT")
     private String adminReviewComment;

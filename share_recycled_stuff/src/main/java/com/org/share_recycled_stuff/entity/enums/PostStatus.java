@@ -8,9 +8,9 @@ import java.util.Arrays;
 @Getter
 @RequiredArgsConstructor
 public enum PostStatus {
-    PENDING(1, "Pending Review"),
-    APPROVED(2, "Approved"),
-    REJECTED(3, "Rejected");
+    ACTIVE (1, "Active"),
+    EDIT (2, "Request for Edit"),
+    DELETED(3, "Deleted");
 
     private final int code;
     private final String displayName;
