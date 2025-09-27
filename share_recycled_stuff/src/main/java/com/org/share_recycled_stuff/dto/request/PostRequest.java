@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
@@ -16,8 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @Data
 @Valid
-public class CreatePostRequest {
-    private Long id;
+public class PostRequest {
     private Long accountId;
 
     @NotBlank(message = "Tiêu đề không được để trống")
@@ -33,5 +31,5 @@ public class CreatePostRequest {
 
     private Integer purposeCode;
 
-    private List<CreatePostImageRequest> images;
+    private List<PostImageRequest> images;
 }

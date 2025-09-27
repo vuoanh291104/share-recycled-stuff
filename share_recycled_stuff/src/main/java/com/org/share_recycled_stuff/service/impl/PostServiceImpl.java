@@ -1,21 +1,26 @@
 package com.org.share_recycled_stuff.service.impl;
 
-import com.org.share_recycled_stuff.dto.request.CreatePostRequest;
 import com.org.share_recycled_stuff.dto.response.PostDetailResponse;
-import com.org.share_recycled_stuff.dto.response.PostImageResponse;
 import com.org.share_recycled_stuff.dto.response.PostResponse;
 import com.org.share_recycled_stuff.entity.Category;
 import com.org.share_recycled_stuff.entity.Post;
 import com.org.share_recycled_stuff.entity.User;
 import com.org.share_recycled_stuff.entity.enums.PostStatus;
+
+import com.org.share_recycled_stuff.dto.request.PostImageRequest;
+import com.org.share_recycled_stuff.dto.request.PostRequest;
+import com.org.share_recycled_stuff.entity.PostImages;
+
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
+import com.org.share_recycled_stuff.mapper.PostImageMapper;
 import com.org.share_recycled_stuff.mapper.PostMapper;
 import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.CategoryRepository;
+import com.org.share_recycled_stuff.repository.PostImageRepository;
 import com.org.share_recycled_stuff.repository.PostRepository;
 import com.org.share_recycled_stuff.repository.UserRepository;
-import com.org.share_recycled_stuff.service.PostImageService;
+
 import com.org.share_recycled_stuff.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,46 +28,92 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
+    private final PostImageRepository postImageRepository;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
-    private final PostImageService postImageService;
     private final PostMapper postMapper;
+    private final PostImageMapper postImageMapper;
 
     @Override
     @Transactional
-    public PostResponse createPost(CreatePostRequest createPostRequest, Long accountId) {
+    public PostResponse createPost(PostRequest postRequest, Long accountId) {
         isAccountExist(accountId);
-        createPostRequest.setAccountId(accountId);
-        Category category = getCategoryExist(createPostRequest.getCategoryId());
-        Post post = postMapper.toEntity(createPostRequest);
+        postRequest.setAccountId(accountId);
+        Category category = getCategoryExist(postRequest.getCategoryId());
+
+        Post post = postMapper.toEntity(postRequest);
+
+        if(post.getImages()  != null) {
+            post.getImages().forEach(img -> img.setPost(post));
+        }
         post.setCategory(category);
+
+        Post savedPost = postRepository.save(post);
+
+        return postMapper.toResponse(savedPost);
+    }
+
+    @Override
+    @Transactional
+    public PostResponse updatePost(PostRequest postRequest, Long accountId, Long postId) {
+        Post post = isPostExist(postId);
+
+        if(!post.getAccount().getId().equals(accountId)) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        Set<PostImages> oldImageList = new HashSet<>(post.getImages()) ;
+        List<PostImageRequest> newImageList = postRequest.getImages();
+
+        Category category = getCategoryExist(postRequest.getCategoryId());
+
+        for (PostImageRequest newImg : newImageList) {
+            if(newImg.getId() == null) {
+                PostImages postImages = postImageMapper.toEntity(newImg);
+                postImages.setPost(post);
+                oldImageList.add(postImages);
+            } else {
+                PostImages existing = oldImageList.stream()
+                        .filter(old -> old.getId().equals(newImg.getId()))
+                        .findFirst()
+                        .orElseThrow(() -> new AppException(ErrorCode.IMAGE_NOT_FOUND));
+                postImageMapper.updateImage(newImg, existing);
+            }
+        }
+
+        Set<Long> newIds = newImageList.stream()
+                .map(PostImageRequest :: getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        oldImageList.removeIf(old -> {
+            boolean shouldRemove = old.getId() != null && !newIds.contains(old.getId());
+            if (shouldRemove) {
+                postImageRepository.delete(old);
+            }
+            return shouldRemove;
+        });
+
+        postMapper.updatePost(postRequest, post);
+        post.setImages(oldImageList);
+        post.setCategory(category);
+
         postRepository.save(post);
-        List<PostImageResponse> images = createPostRequest.getImages() == null
-                ? List.of()
-                : createPostRequest.getImages().stream()
-                .map(imgReq -> postImageService.createImage(imgReq, post))
-                .toList();
-        PostResponse postResponse = postMapper.toResponse(post);
-        postResponse.setImages(images);
-        return postResponse;
+        return postMapper.toResponse(post);
     }
 
-    private void isAccountExist (Long accountId) {
-        accountRepository.findById(accountId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
-    }
 
-    private Category getCategoryExist (Long categoryID) {
-        return categoryRepository.findById(categoryID)
-                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-    }
     
     @Override
     public Page<PostDetailResponse> getUserPosts(Long userId, Pageable pageable) {
@@ -84,5 +135,20 @@ public class PostServiceImpl implements PostService {
         
         return posts.map(postMapper::toPostDetailResponse);
     }
-    
+
+    private void isAccountExist (Long accountId) {
+        accountRepository.findById(accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+    }
+
+    private Category getCategoryExist (Long categoryID) {
+        return categoryRepository.findById(categoryID)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+    }
+
+    private Post isPostExist (Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
+    }
+
 }
