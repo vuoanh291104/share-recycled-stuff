@@ -29,6 +29,11 @@ public enum ErrorCode {
     //Category
     CATEGORY_NOT_FOUND("CATEGORY_001", "Category not found", HttpStatus.NOT_FOUND),
 
+    //Post
+    POST_NOT_FOUND("POST_001", "Post not found", HttpStatus.NOT_FOUND),
+
+    //Image
+    IMAGE_NOT_FOUND("IMAGE_001", "Image not found", HttpStatus.NOT_FOUND),
     // Validation
     INVALID_INPUT("VAL_001", "Invalid input: %s", HttpStatus.BAD_REQUEST),
     MISSING_REQUIRED_FIELD("VAL_002", "Missing required field: %s", HttpStatus.BAD_REQUEST),

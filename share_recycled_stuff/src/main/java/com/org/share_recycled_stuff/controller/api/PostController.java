@@ -1,7 +1,7 @@
 package com.org.share_recycled_stuff.controller.api;
 
 import com.org.share_recycled_stuff.config.CustomUserDetail;
-import com.org.share_recycled_stuff.dto.request.CreatePostRequest;
+import com.org.share_recycled_stuff.dto.request.PostRequest;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
 import com.org.share_recycled_stuff.dto.response.PostResponse;
 import com.org.share_recycled_stuff.dto.response.PostDetailResponse;
@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,10 +27,11 @@ import java.time.Instant;
 public class PostController {
     private final PostService postService;
 
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'PROXY_SELLER')")
     @PostMapping
     ResponseEntity<ApiResponse<PostResponse>> newPost (
             @Valid
-            @RequestBody CreatePostRequest request,
+            @RequestBody PostRequest request,
             @AuthenticationPrincipal CustomUserDetail userDetail,
             HttpServletRequest httpRequest
             ){
@@ -94,5 +96,25 @@ public class PostController {
                 .result(posts)
                 .build()
         );
+    }
+
+    @PutMapping("/{id}")
+    ResponseEntity<ApiResponse<PostResponse>> updatePost (
+            @PathVariable Long id,
+            @Valid
+            @RequestBody PostRequest postRequest,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest
+    ) {
+
+        PostResponse postResponse = postService.updatePost(postRequest, userDetail.getAccountId(), id);
+        return ResponseEntity.ok(
+                ApiResponse.<PostResponse>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Cập nhật bài đăng thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .result(postResponse)
+                        .build());
     }
 }
