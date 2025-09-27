@@ -27,6 +27,7 @@ public class EmailServiceImpl implements EmailService {
                 + "<p>Link sẽ hết hạn sau 15 phút.</p>";
         sendEmail(to, subject, content);
     }
+
     private void sendEmail(String to, String subject, String content) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
