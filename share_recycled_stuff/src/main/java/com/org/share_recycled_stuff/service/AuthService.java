@@ -8,7 +8,10 @@ import com.org.share_recycled_stuff.dto.response.VerificationResponse;
 
 public interface AuthService {
     VerificationResponse register(RegisterRequest request);
+
     LoginResponse loginWithEmailAndPassword(LoginEmailRequest request);
+
     String verifyAccount(String token);
+
     void resendVerification(String email);
 }

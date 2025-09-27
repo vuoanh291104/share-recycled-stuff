@@ -8,8 +8,8 @@ import java.util.Arrays;
 @Getter
 @RequiredArgsConstructor
 public enum PostStatus {
-    ACTIVE (1, "Active"),
-    EDIT (2, "Request for Edit"),
+    ACTIVE(1, "Active"),
+    EDIT(2, "Request for Edit"),
     DELETED(3, "Deleted");
 
     private final int code;

@@ -13,16 +13,16 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OtpStatusResponse {
-    
+
     private String email;
     private String message;
     private boolean isNewOtp;
-    
+
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime expiresAt;
-    
+
     private Integer expiresInMinutes;
-    
+
     // Helper method to calculate minutes until expiry
     public void calculateExpiryMinutes() {
         if (expiresAt != null) {

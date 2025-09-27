@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 
-
 @Slf4j
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -47,9 +46,10 @@ public class AuthServiceImpl implements AuthService {
     private EmailService emailService;
     @Value("${app.auth.login.max-attempts:" + AuthConstants.DEFAULT_MAX_LOGIN_ATTEMPTS + "}")
     private int maxLoginAttempts;
-    
+
     @Value("${app.auth.login.lock-duration-minutes:" + AuthConstants.DEFAULT_ACCOUNT_LOCK_DURATION_MINUTES + "}")
     private int accountLockDurationMinutes;
+
     @Override
     public VerificationResponse register(RegisterRequest request) {
 
@@ -82,8 +82,9 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
         emailService.sendVerificationEmail(account.getEmail(), token);
-        return new VerificationResponse(account.getEmail(),expiresAt,token);
+        return new VerificationResponse(account.getEmail(), expiresAt, token);
     }
+
     @Override
     @Transactional
     public String verifyAccount(String token) {
@@ -102,6 +103,7 @@ public class AuthServiceImpl implements AuthService {
         accountRepository.save(account);
         return "Xác thực thành công";
     }
+
     @Override
     public void resendVerification(String email) {
 
@@ -123,30 +125,31 @@ public class AuthServiceImpl implements AuthService {
 
         log.info("Resent verification email to {}", email);
     }
+
     @Override
     @Transactional
     public LoginResponse loginWithEmailAndPassword(LoginEmailRequest request) {
         log.info("Processing login request for email: {} from IP: {}", request.getEmail(), request.getClientIp());
-        
+
         // Input validation
         if (!StringUtils.hasText(request.getEmail()) || !StringUtils.hasText(request.getPassword())) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
-        
+
         String normalizedEmail = request.getEmail().toLowerCase().trim();
         Account account = accountRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> {
                     log.warn("Login attempt with non-existent email: {}", normalizedEmail);
                     return new AppException(ErrorCode.USER_NOT_FOUND);
                 });
-        
+
         // Check if account is locked
         if (isAccountLocked(account)) {
             LocalDateTime lockUntil = account.getLockedUntil();
             log.warn("Login attempt on locked account: {} (locked until: {})", normalizedEmail, lockUntil);
             throw new AppException(ErrorCode.ACCOUNT_LOCKED);
         }
-        
+
         // Verify password
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword())) {
             // Increment failed attempts
@@ -154,17 +157,17 @@ public class AuthServiceImpl implements AuthService {
             log.warn("Invalid password attempt for email: {} from IP: {}", normalizedEmail, request.getClientIp());
             throw new AppException(ErrorCode.INVALID_CREDENTIALS);
         }
-        
+
         // Reset login attempts and update login info
         resetLoginAttemptsAndUpdateInfo(account, request.getClientIp());
-        
+
         try {
             // Generate JWT tokens
             CustomUserDetail userDetail = new CustomUserDetail(account, account.getRoles());
             JwtToken accessToken = jwtService.generateTokens(userDetail);
-            
+
             log.info("Login successful for email: {}", normalizedEmail);
-            
+
             return LoginResponse.builder()
                     .tokenType(accessToken.getTokenType())
                     .accessToken(accessToken.getAccessToken())
@@ -182,7 +185,7 @@ public class AuthServiceImpl implements AuthService {
         if (!account.isLocked()) {
             return false;
         }
-        
+
         // Auto-unlock if lock period has expired
         if (account.getLockedUntil() == null || account.getLockedUntil().isBefore(LocalDateTime.now())) {
             account.setLocked(false);
@@ -193,24 +196,24 @@ public class AuthServiceImpl implements AuthService {
             log.info("Account auto-unlocked for email: {}", account.getEmail());
             return false;
         }
-        
+
         return true;
     }
 
     private void incrementFailedAttempts(Account account) {
         int currentAttempts = account.getLoginAttempts() != null ? account.getLoginAttempts() : 0;
         account.setLoginAttempts(currentAttempts + 1);
-        
+
         if (account.getLoginAttempts() >= maxLoginAttempts) {
             LocalDateTime lockUntil = LocalDateTime.now().plusMinutes(accountLockDurationMinutes);
             account.setLocked(true);
             account.setLockedReason(AuthConstants.LOCK_REASON_TOO_MANY_ATTEMPTS);
             account.setLockedAt(LocalDateTime.now());
             account.setLockedUntil(lockUntil);
-            log.warn("Account temporarily locked for {} minutes due to too many failed attempts: {}", 
+            log.warn("Account temporarily locked for {} minutes due to too many failed attempts: {}",
                     accountLockDurationMinutes, account.getEmail());
         }
-        
+
         accountRepository.save(account);
     }
 
@@ -218,7 +221,7 @@ public class AuthServiceImpl implements AuthService {
         account.setLoginAttempts(0);
         account.setLastLoginAt(LocalDateTime.now());
         account.setLastLoginIp(clientIp);
-        
+
         // Clear lock information on successful login
         if (account.isLocked()) {
             account.setLocked(false);
@@ -227,7 +230,7 @@ public class AuthServiceImpl implements AuthService {
             account.setLockedAt(null);
             log.info("Account unlocked after successful login: {}", account.getEmail());
         }
-        
+
         accountRepository.save(account);
     }
 

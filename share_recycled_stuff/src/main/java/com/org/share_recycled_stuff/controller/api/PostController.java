@@ -3,8 +3,8 @@ package com.org.share_recycled_stuff.controller.api;
 import com.org.share_recycled_stuff.config.CustomUserDetail;
 import com.org.share_recycled_stuff.dto.request.PostRequest;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
-import com.org.share_recycled_stuff.dto.response.PostResponse;
 import com.org.share_recycled_stuff.dto.response.PostDetailResponse;
+import com.org.share_recycled_stuff.dto.response.PostResponse;
 import com.org.share_recycled_stuff.service.PostService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -29,12 +29,12 @@ public class PostController {
 
     @PreAuthorize("hasAnyRole('CUSTOMER', 'PROXY_SELLER')")
     @PostMapping
-    ResponseEntity<ApiResponse<PostResponse>> newPost (
+    ResponseEntity<ApiResponse<PostResponse>> newPost(
             @Valid
             @RequestBody PostRequest request,
             @AuthenticationPrincipal CustomUserDetail userDetail,
             HttpServletRequest httpRequest
-            ){
+    ) {
         PostResponse postResponse = postService.createPost(request, userDetail.getAccountId());
         return ResponseEntity.ok(
                 ApiResponse.<PostResponse>builder()
@@ -56,19 +56,19 @@ public class PostController {
             @RequestParam(defaultValue = "desc") String sortDir,
             HttpServletRequest httpRequest
     ) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") 
-            ? Sort.by(sortBy).descending() 
-            : Sort.by(sortBy).ascending();
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<PostDetailResponse> posts = postService.getUserPosts(userId, pageable);
         return ResponseEntity.ok(
-            ApiResponse.<Page<PostDetailResponse>>builder()
-                .code(HttpStatus.OK.value())
-                .message("Lấy danh sách bài đăng thành công")
-                .path(httpRequest.getRequestURI())
-                .timestamp(Instant.now().toString())
-                .result(posts)
-                .build()
+                ApiResponse.<Page<PostDetailResponse>>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Lấy danh sách bài đăng thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .result(posts)
+                        .build()
         );
     }
 
@@ -81,25 +81,25 @@ public class PostController {
             @AuthenticationPrincipal CustomUserDetail userDetail,
             HttpServletRequest httpRequest
     ) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") 
-            ? Sort.by(sortBy).descending() 
-            : Sort.by(sortBy).ascending();
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         Long accountId = userDetail.getAccountId();
         Page<PostDetailResponse> posts = postService.getMyPosts(accountId, pageable);
         return ResponseEntity.ok(
-            ApiResponse.<Page<PostDetailResponse>>builder()
-                .code(HttpStatus.OK.value())
-                .message("Lấy danh sách bài đăng của bạn thành công")
-                .path(httpRequest.getRequestURI())
-                .timestamp(Instant.now().toString())
-                .result(posts)
-                .build()
+                ApiResponse.<Page<PostDetailResponse>>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Lấy danh sách bài đăng của bạn thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .result(posts)
+                        .build()
         );
     }
 
     @PutMapping("/{id}")
-    ResponseEntity<ApiResponse<PostResponse>> updatePost (
+    ResponseEntity<ApiResponse<PostResponse>> updatePost(
             @PathVariable Long id,
             @Valid
             @RequestBody PostRequest postRequest,
