@@ -72,5 +72,5 @@ public interface PostMapper {
     @Mapping(source = "id", target = "id")
     @Mapping(source = "account.id", target = "accountId")
     @Mapping(source = "status", target = "status")
-    PostResponse toDeletedPost (Post post);
+    PostResponse toDeletedPost(Post post);
 }

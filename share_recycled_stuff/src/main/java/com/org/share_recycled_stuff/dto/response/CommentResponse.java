@@ -25,4 +25,5 @@ public class CommentResponse {
 
     // Thông tin parent comment (nếu là reply)
     private Long parentCommentId;
+
 }

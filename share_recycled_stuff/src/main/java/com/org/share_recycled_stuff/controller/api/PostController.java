@@ -3,6 +3,7 @@ package com.org.share_recycled_stuff.controller.api;
 import com.org.share_recycled_stuff.config.CustomUserDetail;
 import com.org.share_recycled_stuff.dto.request.PostRequest;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
+import com.org.share_recycled_stuff.dto.response.CommentResponse;
 import com.org.share_recycled_stuff.dto.response.PostDetailResponse;
 import com.org.share_recycled_stuff.dto.response.PostResponse;
 import com.org.share_recycled_stuff.service.PostService;
@@ -20,6 +21,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -119,7 +121,7 @@ public class PostController {
     }
 
     @DeleteMapping("/{id}")
-    ResponseEntity<ApiResponse<PostResponse>> deletePost (
+    ResponseEntity<ApiResponse<PostResponse>> deletePost(
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetail userDetail,
             HttpServletRequest httpRequest
@@ -136,5 +138,23 @@ public class PostController {
                         .build()
         );
 
+    }
+
+    @GetMapping("/{id}/comments")
+    public ResponseEntity<ApiResponse<List<CommentResponse>>> getPostComments(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest
+    ) {
+        List<CommentResponse> comments = postService.getPostComments(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<CommentResponse>>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Lấy danh sách bình luận thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .result(comments)
+                        .build()
+        );
     }
 }

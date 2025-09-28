@@ -2,15 +2,14 @@ package com.org.share_recycled_stuff.service.impl;
 
 import com.org.share_recycled_stuff.dto.request.PostImageRequest;
 import com.org.share_recycled_stuff.dto.request.PostRequest;
+import com.org.share_recycled_stuff.dto.response.CommentResponse;
 import com.org.share_recycled_stuff.dto.response.PostDetailResponse;
 import com.org.share_recycled_stuff.dto.response.PostResponse;
-import com.org.share_recycled_stuff.entity.Category;
-import com.org.share_recycled_stuff.entity.Post;
-import com.org.share_recycled_stuff.entity.PostImages;
-import com.org.share_recycled_stuff.entity.User;
+import com.org.share_recycled_stuff.entity.*;
 import com.org.share_recycled_stuff.entity.enums.PostStatus;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
+import com.org.share_recycled_stuff.mapper.CommentMapper;
 import com.org.share_recycled_stuff.mapper.PostImageMapper;
 import com.org.share_recycled_stuff.mapper.PostMapper;
 import com.org.share_recycled_stuff.repository.*;
@@ -36,8 +35,10 @@ public class PostServiceImpl implements PostService {
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final CommentsRepository commentsRepository;
     private final PostMapper postMapper;
     private final PostImageMapper postImageMapper;
+    private final CommentMapper commentMapper;
 
     @Override
     @Transactional
@@ -159,16 +160,29 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
     }
 
-    private void isOwner (Long accountId, Post post) {
-        if(!post.getAccount().getId().equals(accountId)) {
+    private void isOwner(Long accountId, Post post) {
+        if (!post.getAccount().getId().equals(accountId)) {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
     }
 
-    private void isDeleted (Post post) {
+    private void isDeleted(Post post) {
         if (post.getDeletedAt() != null || post.getStatus().equals(PostStatus.DELETED)) {
             throw new AppException(ErrorCode.POST_ALREADY_DELETED);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getPostComments(Long postId) {
+
+        isPostExist(postId);
+
+        List<Comments> parentComments = commentsRepository.findByPostIdOrderByCreatedAtAsc(postId);
+
+        return parentComments.stream()
+                .map(commentMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
 }
