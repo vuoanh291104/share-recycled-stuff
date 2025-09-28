@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -62,9 +63,8 @@ public class PostServiceImpl implements PostService {
     public PostResponse updatePost(PostRequest postRequest, Long accountId, Long postId) {
         Post post = isPostExist(postId);
 
-        if (!post.getAccount().getId().equals(accountId)) {
-            throw new AppException(ErrorCode.UNAUTHORIZED);
-        }
+        isOwner(accountId, post);
+        isDeleted(post);
 
         Set<PostImages> oldImageList = new HashSet<>(post.getImages());
         List<PostImageRequest> newImageList = postRequest.getImages();
@@ -106,6 +106,22 @@ public class PostServiceImpl implements PostService {
         return postMapper.toResponse(post);
     }
 
+    @Override
+    public PostResponse softDelete(Long accountID, Long postId) {
+        Post post = isPostExist(postId);
+
+        isDeleted(post);
+        isOwner(accountID, post);
+
+        post.setDeletedAt(LocalDateTime.now());
+        post.setStatus(PostStatus.DELETED);
+
+        postRepository.save(post);
+
+        PostResponse postResponse = postMapper.toDeletedPost(post);
+        return postResponse;
+    }
+
 
     @Override
     public Page<PostDetailResponse> getUserPosts(Long userId, Pageable pageable) {
@@ -141,6 +157,18 @@ public class PostServiceImpl implements PostService {
     private Post isPostExist(Long postId) {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
+    }
+
+    private void isOwner (Long accountId, Post post) {
+        if(!post.getAccount().getId().equals(accountId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    private void isDeleted (Post post) {
+        if (post.getDeletedAt() != null || post.getStatus().equals(PostStatus.DELETED)) {
+            throw new AppException(ErrorCode.POST_ALREADY_DELETED);
+        }
     }
 
 }

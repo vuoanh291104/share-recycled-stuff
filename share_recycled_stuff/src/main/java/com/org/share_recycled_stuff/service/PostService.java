@@ -15,4 +15,5 @@ public interface PostService {
 
     PostResponse updatePost(PostRequest postRequest, Long accountId, Long postId);
 
+    PostResponse softDelete (Long accountID, Long postId);
 }

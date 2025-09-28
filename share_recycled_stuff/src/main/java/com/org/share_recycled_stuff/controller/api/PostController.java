@@ -117,4 +117,24 @@ public class PostController {
                         .result(postResponse)
                         .build());
     }
+
+    @DeleteMapping("/{id}")
+    ResponseEntity<ApiResponse<PostResponse>> deletePost (
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest
+    ) {
+
+        PostResponse postResponse = postService.softDelete(userDetail.getAccountId(), id);
+
+        return ResponseEntity.ok(
+                ApiResponse.<PostResponse>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Xóa thành công")
+                        .path(httpRequest.getRequestURI())
+                        .result(postResponse)
+                        .build()
+        );
+
+    }
 }

@@ -10,10 +10,7 @@ import com.org.share_recycled_stuff.entity.User;
 import com.org.share_recycled_stuff.entity.enums.PostPurpose;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
+import org.mapstruct.*;
 
 
 @Mapper(componentModel = "spring", uses = {PostImageMapper.class})
@@ -70,4 +67,10 @@ public interface PostMapper {
     @Mapping(source = "images", target = "images")
     @Mapping(source = "category.name", target = "category")
     PostDetailResponse toPostDetailResponse(Post post);
+
+    @BeanMapping(ignoreByDefault = true)
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "account.id", target = "accountId")
+    @Mapping(source = "status", target = "status")
+    PostResponse toDeletedPost (Post post);
 }
