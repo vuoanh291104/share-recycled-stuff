@@ -72,10 +72,10 @@ public class CommentController {
     public ResponseEntity<ApiResponse<CommentResponse>> editComment(
             @PathVariable Long id,
             @Valid @RequestBody EditCommentRequest request,
-            @RequestParam Long userId,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
             HttpServletRequest httpRequest
     ) {
-        CommentResponse response = commentService.editComment(id, request, userId);
+        CommentResponse response = commentService.editComment(id, request, userDetail.getAccountId());
         return ResponseEntity.ok(
                 ApiResponse.<CommentResponse>builder()
                         .code(HttpStatus.OK.value())
