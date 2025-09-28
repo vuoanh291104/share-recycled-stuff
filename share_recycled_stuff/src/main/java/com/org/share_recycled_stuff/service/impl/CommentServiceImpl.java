@@ -4,6 +4,8 @@ import com.org.share_recycled_stuff.dto.request.CommentRequest;
 import com.org.share_recycled_stuff.dto.request.ReplyCommentRequest;
 import com.org.share_recycled_stuff.dto.response.CommentResponse;
 import com.org.share_recycled_stuff.entity.Account;
+import com.org.share_recycled_stuff.dto.request.EditCommentRequest;
+import com.org.share_recycled_stuff.dto.response.EditCommentResponse;
 import com.org.share_recycled_stuff.entity.Comments;
 import com.org.share_recycled_stuff.entity.Post;
 import com.org.share_recycled_stuff.exception.AppException;
@@ -11,17 +13,23 @@ import com.org.share_recycled_stuff.exception.ErrorCode;
 import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.CommentsRepository;
 import com.org.share_recycled_stuff.repository.PostRepository;
+import com.org.share_recycled_stuff.repository.CommentRepository;
 import com.org.share_recycled_stuff.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 @Transactional
 public class CommentServiceImpl implements CommentService {
+    @Autowired
+    private CommentRepository commentRepository;
 
     private final CommentsRepository commentsRepository;
     private final PostRepository postRepository;
@@ -87,6 +95,29 @@ public class CommentServiceImpl implements CommentService {
                 .commenterName(commenterName)
                 .parentCommentId(comment.getParentComment() != null ?
                         comment.getParentComment().getId() : null)
+                .build();
+    }
+    @Override
+    public EditCommentResponse editComment(Long id, EditCommentRequest request, Long userId) {
+        Comments comment = commentRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Comment không tồn tại"));
+
+        if (!comment.getAccount().getId().equals(userId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền sửa comment này");
+        }
+
+        comment.setContent(request.getContent());
+
+        Comments updated = commentRepository.save(comment);
+
+        return EditCommentResponse.builder()
+                .id(updated.getId())
+                .content(updated.getContent())
+                .isEdited(updated.isEdited())
+                .createdAt(updated.getCreatedAt())
+                .updatedAt(updated.getUpdatedAt())
+                .accountId(updated.getAccount().getId())
+                .postId(updated.getPost().getId())
                 .build();
     }
 }
