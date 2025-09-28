@@ -86,4 +86,21 @@ public class CommentController {
                         .build()
         );
     }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteComment(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest
+    ){
+        commentService.deleteComment(id, userDetail.getAccountId());
+
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Xoá comment thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .build()
+        );
+    }
 }

@@ -11,4 +11,5 @@ public interface CommentService {
 
     CommentResponse replyToComment(ReplyCommentRequest request, Long accountId);
     CommentResponse editComment(Long id, EditCommentRequest request, Long userId);
+    void deleteComment(Long id, Long userId);
 }
