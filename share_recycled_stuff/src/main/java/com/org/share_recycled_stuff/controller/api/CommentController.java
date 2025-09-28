@@ -3,6 +3,7 @@ package com.org.share_recycled_stuff.controller.api;
 import com.org.share_recycled_stuff.config.CustomUserDetail;
 import com.org.share_recycled_stuff.dto.request.CommentRequest;
 import com.org.share_recycled_stuff.dto.request.ReplyCommentRequest;
+import com.org.share_recycled_stuff.dto.request.EditCommentRequest;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
 import com.org.share_recycled_stuff.dto.response.CommentResponse;
 import com.org.share_recycled_stuff.service.CommentService;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 
@@ -60,6 +62,24 @@ public class CommentController {
                 ApiResponse.<CommentResponse>builder()
                         .code(HttpStatus.CREATED.value())
                         .message("Trả lời comment thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .result(response)
+                        .build()
+        );
+    }
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<CommentResponse>> editComment(
+            @PathVariable Long id,
+            @Valid @RequestBody EditCommentRequest request,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest
+    ) {
+        CommentResponse response = commentService.editComment(id, request, userDetail.getAccountId());
+        return ResponseEntity.ok(
+                ApiResponse.<CommentResponse>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Sửa comment thành công")
                         .path(httpRequest.getRequestURI())
                         .timestamp(Instant.now().toString())
                         .result(response)

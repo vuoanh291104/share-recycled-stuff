@@ -4,6 +4,7 @@ import com.org.share_recycled_stuff.dto.request.CommentRequest;
 import com.org.share_recycled_stuff.dto.request.ReplyCommentRequest;
 import com.org.share_recycled_stuff.dto.response.CommentResponse;
 import com.org.share_recycled_stuff.entity.Account;
+import com.org.share_recycled_stuff.dto.request.EditCommentRequest;
 import com.org.share_recycled_stuff.entity.Comments;
 import com.org.share_recycled_stuff.entity.Post;
 import com.org.share_recycled_stuff.exception.AppException;
@@ -16,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -88,5 +91,22 @@ public class CommentServiceImpl implements CommentService {
                 .parentCommentId(comment.getParentComment() != null ?
                         comment.getParentComment().getId() : null)
                 .build();
+    }
+    @Override
+    public CommentResponse editComment(Long id, EditCommentRequest request, Long userId) {
+        Comments comment = commentsRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Comment không tồn tại"));
+
+        if (!comment.getAccount().getId().equals(userId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền sửa comment này");
+        }
+
+        comment.setContent(request.getContent());
+        comment.setEdited(true);
+        comment.setUpdatedAt(LocalDateTime.now());
+
+        Comments updated = commentsRepository.save(comment);
+
+        return mapToCommentResponse(updated);
     }
 }
