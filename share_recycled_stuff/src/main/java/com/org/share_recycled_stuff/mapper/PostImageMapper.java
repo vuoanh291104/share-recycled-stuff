@@ -8,7 +8,9 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface PostImageMapper {
-    PostImages toEntity (PostImageRequest postImageRequest);
-    PostImageResponse toResponse (PostImages postImages);
-    void updateImage (PostImageRequest postImageRequest, @MappingTarget PostImages entity);
+    PostImages toEntity(PostImageRequest postImageRequest);
+
+    PostImageResponse toResponse(PostImages postImages);
+
+    void updateImage(PostImageRequest postImageRequest, @MappingTarget PostImages entity);
 }

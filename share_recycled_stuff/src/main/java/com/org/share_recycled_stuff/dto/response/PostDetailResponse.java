@@ -26,13 +26,13 @@ public class PostDetailResponse {
     private Integer viewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
+
     // Thông tin người đăng
     private UserInfo author;
-    
+
     // Hình ảnh bài đăng
     private List<PostImageResponse> images;
-    
+
     @Data
     @Builder
     @NoArgsConstructor

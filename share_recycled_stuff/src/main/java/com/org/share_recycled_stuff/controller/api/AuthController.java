@@ -25,13 +25,13 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginEmailRequest request, 
-                                                           HttpServletRequest httpRequest) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginEmailRequest request,
+                                                            HttpServletRequest httpRequest) {
         String clientIp = getClientIpAddress(httpRequest);
         request.setClientIp(clientIp);
-        
+
         log.info("Login request from email: {} with IP: {}", request.getEmail(), clientIp);
-        
+
         LoginResponse response = authService.loginWithEmailAndPassword(request);
         log.info("Login successful for email: {}", request.getEmail());
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
@@ -42,18 +42,18 @@ public class AuthController {
         if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
             return xForwardedFor.split(",")[0].trim();
         }
-        
+
         String xRealIp = request.getHeader("X-Real-IP");
         if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
             return xRealIp;
         }
-        
+
         return request.getRemoteAddr();
     }
+
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<VerificationResponse>> register(
             @Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
-
 
 
         VerificationResponse response = authService.register(request);
@@ -68,6 +68,7 @@ public class AuthController {
 
         return ResponseEntity.ok(apiResponse);
     }
+
     @GetMapping("/verify")
     public ResponseEntity<ApiResponse<String>> verifyAccount(
             @RequestParam("token") String token,
@@ -85,6 +86,7 @@ public class AuthController {
 
         return ResponseEntity.ok(apiResponse);
     }
+
     @PostMapping("/resend-verification")
     public ResponseEntity<ApiResponse<String>> resendVerification(
             @RequestParam("email") String email,
