@@ -102,7 +102,7 @@ public class CommentServiceImpl implements CommentService {
         }
 
         comment.setContent(request.getContent());
-        comment.setEdited(true); // nhớ đánh dấu đã chỉnh sửa
+        comment.setEdited(true);
         comment.setUpdatedAt(LocalDateTime.now());
 
         Comments updated = commentsRepository.save(comment);
