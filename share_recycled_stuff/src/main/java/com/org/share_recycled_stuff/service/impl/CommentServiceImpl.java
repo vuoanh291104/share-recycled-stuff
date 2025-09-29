@@ -109,4 +109,26 @@ public class CommentServiceImpl implements CommentService {
 
         return mapToCommentResponse(updated);
     }
+    @Override
+    public void deleteComment(Long id, Long userId) {
+        Comments comment = commentsRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Comment không tồn tại"));
+
+        if (!comment.getAccount().getId().equals(userId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền xóa comment này");
+        }
+        if (comment.getChildComments() != null) {
+            for (Comments child : comment.getChildComments()) {
+                child.setDeletedAt(LocalDateTime.now());
+                if (child.getChildComments() != null && !child.getChildComments().isEmpty()) {
+                    for (Comments grandChild : child.getChildComments()) {
+                        grandChild.setDeletedAt(LocalDateTime.now());
+                    }
+                }
+            }
+        }
+        comment.setDeletedAt(LocalDateTime.now());
+        commentsRepository.save(comment);
+
+    }
 }
