@@ -2,8 +2,8 @@ package com.org.share_recycled_stuff.controller.api;
 
 import com.org.share_recycled_stuff.config.CustomUserDetail;
 import com.org.share_recycled_stuff.dto.request.CommentRequest;
-import com.org.share_recycled_stuff.dto.request.ReplyCommentRequest;
 import com.org.share_recycled_stuff.dto.request.EditCommentRequest;
+import com.org.share_recycled_stuff.dto.request.ReplyCommentRequest;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
 import com.org.share_recycled_stuff.dto.response.CommentResponse;
 import com.org.share_recycled_stuff.service.CommentService;
@@ -14,10 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -68,6 +64,7 @@ public class CommentController {
                         .build()
         );
     }
+
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<CommentResponse>> editComment(
             @PathVariable Long id,

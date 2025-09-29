@@ -1,10 +1,13 @@
 package com.org.share_recycled_stuff.service;
 
 import com.org.share_recycled_stuff.dto.request.PostRequest;
+import com.org.share_recycled_stuff.dto.response.CommentResponse;
 import com.org.share_recycled_stuff.dto.response.PostDetailResponse;
 import com.org.share_recycled_stuff.dto.response.PostResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 public interface PostService {
     Page<PostDetailResponse> getUserPosts(Long userId, Pageable pageable);
@@ -15,5 +18,7 @@ public interface PostService {
 
     PostResponse updatePost(PostRequest postRequest, Long accountId, Long postId);
 
-    PostResponse softDelete (Long accountID, Long postId);
+    PostResponse softDelete(Long accountID, Long postId);
+
+    List<CommentResponse> getPostComments(Long postId);
 }

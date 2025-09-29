@@ -1,14 +1,15 @@
 package com.org.share_recycled_stuff.service.impl;
 
 import com.org.share_recycled_stuff.dto.request.CommentRequest;
+import com.org.share_recycled_stuff.dto.request.EditCommentRequest;
 import com.org.share_recycled_stuff.dto.request.ReplyCommentRequest;
 import com.org.share_recycled_stuff.dto.response.CommentResponse;
 import com.org.share_recycled_stuff.entity.Account;
-import com.org.share_recycled_stuff.dto.request.EditCommentRequest;
 import com.org.share_recycled_stuff.entity.Comments;
 import com.org.share_recycled_stuff.entity.Post;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
+import com.org.share_recycled_stuff.mapper.CommentMapper;
 import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.CommentsRepository;
 import com.org.share_recycled_stuff.repository.PostRepository;
@@ -29,6 +30,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentsRepository commentsRepository;
     private final PostRepository postRepository;
     private final AccountRepository accountRepository;
+    private final CommentMapper commentMapper;
 
     @Override
     public CommentResponse createComment(CommentRequest request, Long accountId) {
@@ -49,7 +51,7 @@ public class CommentServiceImpl implements CommentService {
         log.info("Created new comment with ID: {} for post: {} by account: {}",
                 savedComment.getId(), post.getId(), account.getId());
 
-        return mapToCommentResponse(savedComment);
+        return commentMapper.toResponse(savedComment);
     }
 
     @Override
@@ -71,27 +73,9 @@ public class CommentServiceImpl implements CommentService {
         log.info("Created reply with ID: {} for comment: {} by account: {}",
                 savedReply.getId(), parentComment.getId(), account.getId());
 
-        return mapToCommentResponse(savedReply);
+        return commentMapper.toResponse(savedReply);
     }
 
-    private CommentResponse mapToCommentResponse(Comments comment) {
-        String commenterName = comment.getAccount().getUser() != null ?
-                comment.getAccount().getUser().getFullName() :
-                comment.getAccount().getEmail();
-
-        return CommentResponse.builder()
-                .id(comment.getId())
-                .postId(comment.getPost().getId())
-                .content(comment.getContent())
-                .isEdited(comment.isEdited())
-                .createdAt(comment.getCreatedAt())
-                .updatedAt(comment.getUpdatedAt())
-                .accountId(comment.getAccount().getId())
-                .commenterName(commenterName)
-                .parentCommentId(comment.getParentComment() != null ?
-                        comment.getParentComment().getId() : null)
-                .build();
-    }
     @Override
     public CommentResponse editComment(Long id, EditCommentRequest request, Long userId) {
         Comments comment = commentsRepository.findById(id)
@@ -107,7 +91,7 @@ public class CommentServiceImpl implements CommentService {
 
         Comments updated = commentsRepository.save(comment);
 
-        return mapToCommentResponse(updated);
+        return commentMapper.toResponse(updated);
     }
     @Override
     public void deleteComment(Long id, Long userId) {
