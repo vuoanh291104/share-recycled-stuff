@@ -186,7 +186,6 @@ public class AuthServiceImpl implements AuthService {
             return false;
         }
 
-        // Auto-unlock if lock period has expired
         if (account.getLockedUntil() == null || account.getLockedUntil().isBefore(LocalDateTime.now())) {
             account.setLocked(false);
             account.setLockedUntil(null);
