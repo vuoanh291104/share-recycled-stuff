@@ -20,6 +20,10 @@ public enum ErrorCode {
     EMAIL_ALREADY_EXISTS("USER_003", "Email already exists", HttpStatus.CONFLICT),
     USERNAME_ALREADY_EXISTS("USER_004", "Username already exists", HttpStatus.CONFLICT),
     ACCOUNT_NOT_FOUND("USER_005", "Account not found", HttpStatus.NOT_FOUND),
+    USER_ALREADY_HAS_ROLE("USER_006", "User already has this role", HttpStatus.CONFLICT),
+    USER_DOES_NOT_HAVE_ROLE("USER_007", "User does not have this role", HttpStatus.BAD_REQUEST),
+    CANNOT_REMOVE_LAST_ADMIN("USER_008", "Cannot remove the last admin role", HttpStatus.BAD_REQUEST),
+    USER_MUST_HAVE_AT_LEAST_ONE_ROLE("USER_009", "User must have at least one role", HttpStatus.BAD_REQUEST),
 
     // Item/Product related
     ITEM_NOT_FOUND("ITEM_001", "Item not found", HttpStatus.NOT_FOUND),
