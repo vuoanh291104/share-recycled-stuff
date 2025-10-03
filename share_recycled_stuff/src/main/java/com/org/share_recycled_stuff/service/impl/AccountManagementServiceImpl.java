@@ -7,14 +7,21 @@ import com.org.share_recycled_stuff.dto.request.UnlockAccountRequest;
 import com.org.share_recycled_stuff.dto.response.AccountLockResponse;
 import com.org.share_recycled_stuff.dto.response.AccountOperationError;
 import com.org.share_recycled_stuff.dto.response.BulkAccountOperationResponse;
+import com.org.share_recycled_stuff.dto.response.UserDetailResponse;
 import com.org.share_recycled_stuff.entity.Account;
+import com.org.share_recycled_stuff.entity.User;
 import com.org.share_recycled_stuff.entity.enums.Role;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
+import com.org.share_recycled_stuff.mapper.UserMapper;
 import com.org.share_recycled_stuff.repository.AccountRepository;
+import com.org.share_recycled_stuff.repository.UserRepository;
 import com.org.share_recycled_stuff.service.AccountManagementService;
+import com.org.share_recycled_stuff.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -29,9 +36,61 @@ import java.util.List;
 public class AccountManagementServiceImpl implements AccountManagementService {
 
     private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
+    private final UserMapper userMapper;
+    private final SecurityUtils securityUtils;
+    
     private static final int MAX_LOCK_DURATION_MINUTES = 60 * 24 * 30; // 30 days
     private static final int MIN_REASON_LENGTH = 5;
     private static final int MAX_REASON_LENGTH = 255;
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserDetailResponse> getAllUsers(String search, String role, String status, Pageable pageable) {
+        log.info("Fetching users with filters - search: {}, role: {}, status: {}", search, role, status);
+
+        Role roleEnum = null;
+        if (StringUtils.hasText(role)) {
+            try {
+                roleEnum = Role.valueOf(role.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid role filter: {}", role);
+                throw new AppException(ErrorCode.INVALID_INPUT, "Invalid role: " + role);
+            }
+        }
+
+        Boolean isLocked = null;
+        if (StringUtils.hasText(status)) {
+            if ("LOCKED".equalsIgnoreCase(status)) {
+                isLocked = true;
+            } else if ("ACTIVE".equalsIgnoreCase(status)) {
+                isLocked = false;
+            } else {
+                log.warn("Invalid status filter: {}", status);
+                throw new AppException(ErrorCode.INVALID_INPUT, "Invalid status: " + status);
+            }
+        }
+
+        Page<Account> accounts = accountRepository.findAllWithFilters(search, roleEnum, isLocked, pageable);
+        
+        return accounts.map(userMapper::toUserDetailResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetailResponse getUserDetail(Long userId) {
+        log.info("Fetching user detail for userId: {}", userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        Account account = user.getAccount();
+        if (account == null) {
+            throw new AppException(ErrorCode.ACCOUNT_NOT_FOUND);
+        }
+
+        return userMapper.toUserDetailResponse(account);
+    }
 
     @Override
     @Transactional
@@ -134,6 +193,12 @@ public class AccountManagementServiceImpl implements AccountManagementService {
     }
 
     private AccountLockResponse performLock(Account account, String reason, Integer durationMinutes) {
+        Account currentAdmin = securityUtils.getCurrentAccount();
+        
+        if (currentAdmin.getId().equals(account.getId())) {
+            throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot lock your own account");
+        }
+        
         if (isAdminAccount(account)) {
             log.warn("Attempted to lock admin account: {}", account.getEmail());
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot lock administrator accounts");
@@ -159,6 +224,12 @@ public class AccountManagementServiceImpl implements AccountManagementService {
     }
 
     private AccountLockResponse performUnlock(Account account) {
+        Account currentAdmin = securityUtils.getCurrentAccount();
+        
+        if (currentAdmin.getId().equals(account.getId())) {
+            throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot unlock your own account");
+        }
+        
         if (!account.isLocked()) {
             log.warn("Account {} is not locked", account.getEmail());
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Account is not locked");
