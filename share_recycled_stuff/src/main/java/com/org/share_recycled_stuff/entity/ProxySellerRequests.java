@@ -33,6 +33,9 @@ public class ProxySellerRequests {
     @Column(name = "id_card_back_image", length = 500)
     private String idCardBackImage;
 
+    @Column(name = "address_detail", nullable = false, length = 255)
+    private String addressDetail;
+
     @Convert(converter = RequestStatusConverter.class)
     @Column(nullable = false)
     private RequestStatus status = RequestStatus.PENDING;
