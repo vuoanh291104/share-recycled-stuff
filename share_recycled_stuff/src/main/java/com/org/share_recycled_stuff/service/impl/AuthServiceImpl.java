@@ -2,9 +2,13 @@ package com.org.share_recycled_stuff.service.impl;
 
 import com.org.share_recycled_stuff.config.CustomUserDetail;
 import com.org.share_recycled_stuff.constants.AuthConstants;
+import com.org.share_recycled_stuff.dto.request.ChangePasswordRequest;
+import com.org.share_recycled_stuff.dto.request.ForgotPasswordRequest;
 import com.org.share_recycled_stuff.dto.request.LoginEmailRequest;
 import com.org.share_recycled_stuff.dto.request.RegisterRequest;
+import com.org.share_recycled_stuff.dto.request.ResetPasswordRequest;
 import com.org.share_recycled_stuff.dto.response.LoginResponse;
+import com.org.share_recycled_stuff.dto.response.PasswordResetResponse;
 import com.org.share_recycled_stuff.dto.response.VerificationResponse;
 import com.org.share_recycled_stuff.entity.Account;
 import com.org.share_recycled_stuff.entity.User;
@@ -18,6 +22,7 @@ import com.org.share_recycled_stuff.security.jwt.JwtToken;
 import com.org.share_recycled_stuff.service.AuthService;
 import com.org.share_recycled_stuff.service.EmailService;
 import com.org.share_recycled_stuff.service.JwtService;
+import com.org.share_recycled_stuff.utils.SecurityUtils;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +49,8 @@ public class AuthServiceImpl implements AuthService {
     private JwtService jwtService;
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private SecurityUtils securityUtils;
     @Value("${app.auth.login.max-attempts:" + AuthConstants.DEFAULT_MAX_LOGIN_ATTEMPTS + "}")
     private int maxLoginAttempts;
 
@@ -245,5 +252,139 @@ public class AuthServiceImpl implements AuthService {
                 .avatarUrl(user != null ? user.getAvatarUrl() : null)
                 .role(role)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public PasswordResetResponse forgotPassword(ForgotPasswordRequest request) {
+        log.info("Processing forgot password request for email: {}", request.getEmail());
+
+        String normalizedEmail = request.getEmail().toLowerCase().trim();
+        Account account = accountRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> {
+                    log.warn("Forgot password request for non-existent email: {}", normalizedEmail);
+                    return new AppException(ErrorCode.USER_NOT_FOUND);
+                });
+
+        // Kiểm tra xem tài khoản có bị khóa không
+        if (account.isLocked()) {
+            log.warn("Forgot password request for locked account: {}", normalizedEmail);
+            throw new AppException(ErrorCode.ACCOUNT_LOCKED);
+        }
+
+        // Tạo token reset password
+        String resetToken = UUID.randomUUID().toString();
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15); // Token hết hạn sau 15 phút
+
+        account.setResetPasswordToken(resetToken);
+        account.setResetTokenExpires(expiresAt);
+        accountRepository.save(account);
+
+        // Gửi email reset password
+        emailService.sendPasswordResetEmail(account.getEmail(), resetToken);
+        log.info("Password reset email sent to: {}", normalizedEmail);
+
+        return PasswordResetResponse.builder()
+                .email(account.getEmail())
+                .message("Email đặt lại mật khẩu đã được gửi")
+                .expiresAt(expiresAt)
+                .build();
+    }
+
+    @Override
+    public String validateResetToken(String token) {
+        log.info("Validating reset password token");
+
+        // Find account by reset token
+        Account account = accountRepository.findByResetPasswordToken(token)
+                .orElseThrow(() -> {
+                    log.warn("Invalid reset password token");
+                    return new AppException(ErrorCode.INVALID_RESET_TOKEN);
+                });
+
+        // Check if token has expired
+        if (account.getResetTokenExpires() == null || 
+            account.getResetTokenExpires().isBefore(LocalDateTime.now())) {
+            log.warn("Reset password token expired for email: {}", account.getEmail());
+            throw new AppException(ErrorCode.RESET_TOKEN_EXPIRED);
+        }
+
+        log.info("Reset password token is valid for email: {}", account.getEmail());
+        return "Token hợp lệ";
+    }
+
+    @Override
+    @Transactional
+    public String resetPassword(ResetPasswordRequest request) {
+        log.info("Processing reset password request");
+
+        // Validate password match
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new AppException(ErrorCode.PASSWORD_MISMATCH);
+        }
+
+        // Find account by reset token
+        Account account = accountRepository.findByResetPasswordToken(request.getToken())
+                .orElseThrow(() -> {
+                    log.warn("Invalid reset password token");
+                    return new AppException(ErrorCode.INVALID_RESET_TOKEN);
+                });
+
+        // Check if token has expired
+        if (account.getResetTokenExpires() == null || 
+            account.getResetTokenExpires().isBefore(LocalDateTime.now())) {
+            log.warn("Reset password token expired for email: {}", account.getEmail());
+            throw new AppException(ErrorCode.RESET_TOKEN_EXPIRED);
+        }
+
+        // Kiểm tra mật khẩu mới không được giống mật khẩu cũ
+        if (passwordEncoder.matches(request.getNewPassword(), account.getPassword())) {
+            throw new AppException(ErrorCode.PASSWORD_CANNOT_BE_SAME);
+        }
+
+        // Update password
+        account.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        account.setResetPasswordToken(null);
+        account.setResetTokenExpires(null);
+        
+        // Reset login attempts if any
+        account.setLoginAttempts(0);
+        
+        accountRepository.save(account);
+        
+        log.info("Password reset successful for email: {}", account.getEmail());
+        return "Đặt lại mật khẩu thành công";
+    }
+
+    @Override
+    @Transactional
+    public String changePassword(ChangePasswordRequest request) {
+        log.info("Processing change password request");
+
+        // Get current logged in account
+        Account account = securityUtils.getCurrentAccount();
+
+        // Validate password match
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new AppException(ErrorCode.PASSWORD_MISMATCH);
+        }
+
+        // Verify current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), account.getPassword())) {
+            log.warn("Invalid current password for email: {}", account.getEmail());
+            throw new AppException(ErrorCode.INVALID_CURRENT_PASSWORD);
+        }
+
+        // Check new password is different from current
+        if (passwordEncoder.matches(request.getNewPassword(), account.getPassword())) {
+            throw new AppException(ErrorCode.PASSWORD_CANNOT_BE_SAME);
+        }
+
+        // Update password
+        account.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        accountRepository.save(account);
+
+        log.info("Password changed successfully for email: {}", account.getEmail());
+        return "Đổi mật khẩu thành công";
     }
 }

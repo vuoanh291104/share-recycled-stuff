@@ -1,9 +1,14 @@
 package com.org.share_recycled_stuff.controller.api;
 
+import com.org.share_recycled_stuff.config.CustomUserDetail;
+import com.org.share_recycled_stuff.dto.request.ChangePasswordRequest;
+import com.org.share_recycled_stuff.dto.request.ForgotPasswordRequest;
 import com.org.share_recycled_stuff.dto.request.LoginEmailRequest;
 import com.org.share_recycled_stuff.dto.request.RegisterRequest;
+import com.org.share_recycled_stuff.dto.request.ResetPasswordRequest;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
 import com.org.share_recycled_stuff.dto.response.LoginResponse;
+import com.org.share_recycled_stuff.dto.response.PasswordResetResponse;
 import com.org.share_recycled_stuff.dto.response.VerificationResponse;
 import com.org.share_recycled_stuff.service.AuthService;
 import com.org.share_recycled_stuff.service.JwtService;
@@ -13,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -104,6 +110,87 @@ public class AuthController {
                 .path(httpRequest.getRequestURI())
                 .timestamp(Instant.now().toString())
                 .result("OK")
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<PasswordResetResponse>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request,
+            HttpServletRequest httpRequest) {
+
+        log.info("Forgot password request for email: {}", request.getEmail());
+
+        PasswordResetResponse response = authService.forgotPassword(request);
+
+        ApiResponse<PasswordResetResponse> apiResponse = ApiResponse.<PasswordResetResponse>builder()
+                .code(HttpStatus.OK.value())
+                .message("Email đặt lại mật khẩu đã được gửi.")
+                .path(httpRequest.getRequestURI())
+                .timestamp(Instant.now().toString())
+                .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/reset-password/validate")
+    public ResponseEntity<ApiResponse<String>> validateResetToken(
+            @RequestParam("token") String token,
+            HttpServletRequest httpRequest) {
+
+        log.info("Validating reset password token");
+
+        String result = authService.validateResetToken(token);
+
+        ApiResponse<String> apiResponse = ApiResponse.<String>builder()
+                .code(HttpStatus.OK.value())
+                .message("Token hợp lệ. Vui lòng nhập mật khẩu mới.")
+                .path(httpRequest.getRequestURI())
+                .timestamp(Instant.now().toString())
+                .result(result)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<String>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request,
+            HttpServletRequest httpRequest) {
+
+        log.info("Reset password request");
+
+        String result = authService.resetPassword(request);
+
+        ApiResponse<String> apiResponse = ApiResponse.<String>builder()
+                .code(HttpStatus.OK.value())
+                .message("Đặt lại mật khẩu thành công.")
+                .path(httpRequest.getRequestURI())
+                .timestamp(Instant.now().toString())
+                .result(result)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<ApiResponse<String>> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest) {
+
+        log.info("Change password request for user: {}", userDetail.getUsername());
+
+        String result = authService.changePassword(request);
+
+        ApiResponse<String> apiResponse = ApiResponse.<String>builder()
+                .code(HttpStatus.OK.value())
+                .message("Đổi mật khẩu thành công.")
+                .path(httpRequest.getRequestURI())
+                .timestamp(Instant.now().toString())
+                .result(result)
                 .build();
 
         return ResponseEntity.ok(apiResponse);

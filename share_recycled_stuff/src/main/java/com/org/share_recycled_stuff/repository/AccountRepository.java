@@ -21,6 +21,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     Optional<Account> findByVerificationToken(String token);
 
+    Optional<Account> findByResetPasswordToken(String token);
+
     @Query("SELECT COUNT(DISTINCT a) FROM Account a JOIN a.roles r WHERE r.roleType = :roleType AND a.isLocked = :isLocked")
     @Lock(LockModeType.PESSIMISTIC_READ)
     long countByRolesRoleTypeAndStatus(@Param("roleType") Role roleType, @Param("isLocked") boolean isLocked);
