@@ -6,25 +6,15 @@ import com.org.share_recycled_stuff.dto.request.LockAccountRequest;
 import com.org.share_recycled_stuff.dto.request.UnlockAccountRequest;
 import com.org.share_recycled_stuff.dto.response.AccountLockResponse;
 import com.org.share_recycled_stuff.dto.response.BulkAccountOperationResponse;
+import com.org.share_recycled_stuff.dto.response.UserDetailResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface AccountManagementService {
-    /**
-     * Lock an account with a reason and optional duration
-     */
     AccountLockResponse lockAccount(LockAccountRequest request);
-
-    /**
-     * Unlock an account
-     */
     AccountLockResponse unlockAccount(UnlockAccountRequest request);
-
-    /**
-     * Bulk lock accounts
-     */
     BulkAccountOperationResponse bulkLockAccounts(BulkLockRequest request);
-
-    /**
-     * Bulk unlock accounts
-     */
     BulkAccountOperationResponse bulkUnlockAccounts(BulkUnlockRequest request);
+    Page<UserDetailResponse> getAllUsers(String search, String role, String status, Pageable pageable);
+    UserDetailResponse getUserDetail(Long userId);
 }
