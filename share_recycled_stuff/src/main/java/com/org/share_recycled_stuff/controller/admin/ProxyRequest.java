@@ -81,4 +81,17 @@ public class ProxyRequest{
                         .build()
         );
     }
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<Void> approveRequest(@PathVariable Long id) {
+        proxySellerService.approveRequest(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<Void> rejectRequest(
+            @PathVariable Long id,
+            @RequestParam String reason) {
+        proxySellerService.rejectRequest(id, reason);
+        return ResponseEntity.ok().build();
+    }
 }

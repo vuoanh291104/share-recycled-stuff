@@ -14,8 +14,8 @@ public interface ProxySellerRequestRepository extends JpaRepository<ProxySellerR
     select new com.org.share_recycled_stuff.dto.response.UpgradeRequestResponse(
         p.id, u.fullName, a.email, p.idCard, p.addressDetail, p.status, p.createdAt)
     from ProxySellerRequests p
-    join p.account a
-    join a.user u
+    left join p.account a
+    left join a.user u
     """)
     Page<UpgradeRequestResponse> findAllRequest(Pageable pageable);
 
@@ -23,8 +23,8 @@ public interface ProxySellerRequestRepository extends JpaRepository<ProxySellerR
         select new com.org.share_recycled_stuff.dto.response.UpgradeRequestResponse(
             p.id, u.fullName, a.email, p.idCard, p.addressDetail, p.status, p.createdAt)
         from ProxySellerRequests p 
-        join p.account a
-        join a.user u
+        left join p.account a
+        left join a.user u
         where (:status is null or p.status = :status)
         """)
     Page<UpgradeRequestResponse> findAllRequest(@Param("status") RequestStatus status, Pageable pageable);
@@ -33,8 +33,8 @@ public interface ProxySellerRequestRepository extends JpaRepository<ProxySellerR
         select new com.org.share_recycled_stuff.dto.response.UpgradeRequestResponse(
             p.id, u.fullName, a.email, p.idCard, p.addressDetail, p.status, p.createdAt)
         from ProxySellerRequests p 
-        join p.account a
-        join a.user u
+        left join p.account a
+        left join a.user u
         where lower(u.fullName) like lower(concat('%', :fullName, '%'))
         """)
     Page<UpgradeRequestResponse> findRequestsByFullName(@Param("fullName") String fullName, Pageable pageable);
