@@ -11,6 +11,8 @@ import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.ProxySellerRequestRepository;
 import com.org.share_recycled_stuff.service.ProxySellerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -41,7 +43,24 @@ public class ProxySellerServiceImpl implements ProxySellerService {
                 .idCard(saved.getIdCard())
                 .addressDetail(saved.getAddressDetail())
                 .status(saved.getStatus())
-                .createdAt(saved.getCreatedAt().toString())
+                .createdAt(saved.getCreatedAt())
                 .build();
     }
+    @Override
+    public Page<UpgradeRequestResponse> getAllRequests(Pageable pageable) {
+        return requestRepository.findAllRequest(pageable);
+    }
+    @Override
+    public Page<UpgradeRequestResponse> getRequestsByStatus(RequestStatus status, Pageable pageable) {
+        return requestRepository.findAllRequest(status, pageable);
+    }
+    @Override
+    public Page<UpgradeRequestResponse> getRequestName(String fullName, Pageable pageable) {
+        Page<UpgradeRequestResponse> response = requestRepository.findRequestsByFullName(fullName, pageable);
+        if (response == null) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Không tìm thấy yêu cầu với tên: " + fullName);
+        }
+        return response;
+    }
+
 }
