@@ -13,5 +13,6 @@ public interface ProxySellerService {
     Page<UpgradeRequestResponse> getRequestsByStatus(RequestStatus status, Pageable pageable);
 
     Page<UpgradeRequestResponse> getRequestName(String fullName, Pageable pageable);
-
+    void approveRequest(Long requestId);
+    void rejectRequest(Long requestId, String reason);
 }
