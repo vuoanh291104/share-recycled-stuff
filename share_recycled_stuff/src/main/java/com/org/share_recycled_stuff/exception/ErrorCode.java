@@ -14,6 +14,11 @@ public enum ErrorCode {
     ACCOUNT_DISABLED("AUTH_006", "Account has been disabled", HttpStatus.UNAUTHORIZED),
     ACCOUNT_LOCKED("AUTH_007", "Account has been locked", HttpStatus.UNAUTHORIZED),
     ACCOUNT_ALREADY_VERIFIED("AUTH_008", "Account has already been verified", HttpStatus.BAD_REQUEST),
+    PASSWORD_MISMATCH("AUTH_009", "Password does not match", HttpStatus.BAD_REQUEST),
+    INVALID_RESET_TOKEN("AUTH_010", "Invalid or expired reset token", HttpStatus.BAD_REQUEST),
+    RESET_TOKEN_EXPIRED("AUTH_011", "Reset token has expired", HttpStatus.BAD_REQUEST),
+    PASSWORD_CANNOT_BE_SAME("AUTH_012", "New password cannot be the same as current password", HttpStatus.BAD_REQUEST),
+    INVALID_CURRENT_PASSWORD("AUTH_013", "Current password is incorrect", HttpStatus.BAD_REQUEST),
     // User related
     USER_NOT_FOUND("USER_001", "User not found", HttpStatus.NOT_FOUND),
     USER_ALREADY_EXISTS("USER_002", "User already exists", HttpStatus.CONFLICT),

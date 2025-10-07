@@ -28,6 +28,20 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(to, subject, content);
     }
 
+    @Override
+    public void sendPasswordResetEmail(String to, String token) {
+        String subject = "Đặt lại mật khẩu tài khoản";
+        String resetUrl = "http://localhost:3000/reset-password?token=" + token;
+
+        String content = "<p>Chào bạn,</p>"
+                + "<p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>"
+                + "<p>Vui lòng click link dưới đây để đặt lại mật khẩu:</p>"
+                + "<a href=\"" + resetUrl + "\">Đặt lại mật khẩu</a>"
+                + "<p>Link sẽ hết hạn sau 15 phút.</p>"
+                + "<p><strong>Lưu ý:</strong> Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>";
+        sendEmail(to, subject, content);
+    }
+
     private void sendEmail(String to, String subject, String content) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
