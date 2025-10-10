@@ -81,6 +81,7 @@ public class SecurityConfig {
                         ).permitAll()
                         // Admin endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/profile/**").hasAnyRole("ADMIN", "CUSTOMER", "PROXY_SELLER")
                         // User endpoints
                         .requestMatchers("/api/user/**").hasAnyRole("CUSTOMER", "ADMIN")
                         // Proxy Seller endpoints
