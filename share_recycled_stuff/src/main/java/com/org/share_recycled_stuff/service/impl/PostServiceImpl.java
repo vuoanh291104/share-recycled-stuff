@@ -1,10 +1,10 @@
 package com.org.share_recycled_stuff.service.impl;
 
+import com.org.share_recycled_stuff.dto.request.AdminPostReviewRequest;
+import com.org.share_recycled_stuff.dto.request.BulkDeletePostRequest;
 import com.org.share_recycled_stuff.dto.request.PostImageRequest;
 import com.org.share_recycled_stuff.dto.request.PostRequest;
-import com.org.share_recycled_stuff.dto.response.CommentResponse;
-import com.org.share_recycled_stuff.dto.response.PostDetailResponse;
-import com.org.share_recycled_stuff.dto.response.PostResponse;
+import com.org.share_recycled_stuff.dto.response.*;
 import com.org.share_recycled_stuff.entity.*;
 import com.org.share_recycled_stuff.entity.enums.PostStatus;
 import com.org.share_recycled_stuff.exception.AppException;
@@ -15,20 +15,20 @@ import com.org.share_recycled_stuff.mapper.PostMapper;
 import com.org.share_recycled_stuff.repository.*;
 import com.org.share_recycled_stuff.service.PostService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final PostImageRepository postImageRepository;
@@ -183,6 +183,214 @@ public class PostServiceImpl implements PostService {
         return parentComments.stream()
                 .map(commentMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    // Admin methods implementation
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AdminPostDetailResponse> getAllPostsForAdmin(
+            PostStatus status,
+            Long accountId,
+            Long categoryId,
+            String search,
+            boolean includeDeleted,
+            Pageable pageable) {
+        log.info("Admin fetching posts with filters - status: {}, accountId: {}, categoryId: {}, search: {}, includeDeleted: {}",
+                status, accountId, categoryId, search, includeDeleted);
+
+        Page<Post> posts = postRepository.findAllWithFilters(
+                status, accountId, categoryId, search, includeDeleted, pageable
+        );
+
+        return posts.map(postMapper::toAdminPostDetailResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminPostDetailResponse getPostDetailForAdmin(Long postId) {
+        log.info("Admin fetching post detail for postId: {}", postId);
+
+        Post post = postRepository.findByIdWithFullDetails(postId)
+                .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
+
+        return postMapper.toAdminPostDetailResponse(post);
+    }
+
+    @Override
+    @Transactional
+    public AdminPostDetailResponse reviewPost(AdminPostReviewRequest request, Long adminId) {
+        log.info("Admin {} reviewing post - postId: {}, statusCode: {}", adminId, request.getPostId(), request.getStatusCode());
+
+        Post post = isPostExist(request.getPostId());
+
+        // Validate status transition
+        PostStatus currentStatus = post.getStatus();
+        PostStatus newStatus = PostStatus.fromCode(request.getStatusCode());
+        validateStatusTransition(currentStatus, newStatus);
+
+        // Update status
+        post.setStatus(newStatus);
+
+        // Update admin review comment
+        if (request.getAdminReviewComment() != null && !request.getAdminReviewComment().trim().isEmpty()) {
+            post.setAdminReviewComment(request.getAdminReviewComment());
+        }
+
+        // If status is DELETED, set deletedAt
+        if (newStatus == PostStatus.DELETED) {
+            post.setDeletedAt(LocalDateTime.now());
+        } else if (currentStatus == PostStatus.DELETED && newStatus != PostStatus.DELETED) {
+            // If restoring from DELETED, clear deletedAt
+            post.setDeletedAt(null);
+        }
+
+        postRepository.save(post);
+
+        log.info("Post {} reviewed successfully with status {} by admin {}", post.getId(), newStatus, adminId);
+
+        return getPostDetailForAdmin(post.getId());
+    }
+
+    private void validateStatusTransition(PostStatus currentStatus, PostStatus newStatus) {
+        // DELETED posts can only transition to ACTIVE (restore), not to EDIT
+        if (currentStatus == PostStatus.DELETED && newStatus == PostStatus.EDIT) {
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
+        }
+        
+        // Add more transition rules if needed
+        log.debug("Validating status transition from {} to {}", currentStatus, newStatus);
+    }
+
+    @Override
+    @Transactional
+    public AdminPostDetailResponse deletePostByAdmin(Long postId, String reason, Long adminId) {
+        log.info("Admin {} deleting post - postId: {}, reason: {}", adminId, postId, reason);
+
+        Post post = isPostExist(postId);
+
+        post.setStatus(PostStatus.DELETED);
+        post.setDeletedAt(LocalDateTime.now());
+
+        if (reason != null && !reason.trim().isEmpty()) {
+            post.setAdminReviewComment(reason);
+        }
+
+        postRepository.save(post);
+
+        log.info("Post {} deleted successfully by admin {}", postId, adminId);
+
+        return postMapper.toAdminPostDetailResponse(post);
+    }
+
+    @Override
+    @Transactional
+    public BulkDeletePostResponse bulkDeletePosts(BulkDeletePostRequest request, Long adminId) {
+        log.info("Admin {} bulk deleting {} posts", adminId, request.getPostIds().size());
+
+        List<Long> successfulPostIds = new ArrayList<>();
+        List<BulkDeletePostResponse.PostOperationError> errors = new ArrayList<>();
+        Map<Long, String> postTitles = new HashMap<>();
+
+        for (Long postId : request.getPostIds()) {
+            try {
+                Post post = postRepository.findById(postId)
+                        .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
+
+                // Store post title for UX
+                postTitles.put(postId, post.getTitle());
+
+                post.setStatus(PostStatus.DELETED);
+                post.setDeletedAt(LocalDateTime.now());
+
+                if (request.getReason() != null && !request.getReason().trim().isEmpty()) {
+                    post.setAdminReviewComment(request.getReason());
+                }
+
+                postRepository.save(post);
+                successfulPostIds.add(postId);
+
+            } catch (Exception e) {
+                log.error("Error deleting post {}: {}", postId, e.getMessage());
+                errors.add(BulkDeletePostResponse.PostOperationError.builder()
+                        .postId(postId)
+                        .errorMessage(e.getMessage())
+                        .build());
+            }
+        }
+
+        log.info("Bulk delete completed - success: {}, failed: {}", successfulPostIds.size(), errors.size());
+
+        return BulkDeletePostResponse.builder()
+                .totalRequested(request.getPostIds().size())
+                .successCount(successfulPostIds.size())
+                .failedCount(errors.size())
+                .successfulPostIds(successfulPostIds)
+                .postTitles(postTitles)
+                .processedAt(LocalDateTime.now())
+                .errors(errors)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public AdminPostDetailResponse restorePost(Long postId, Long adminId) {
+        log.info("Admin {} restoring post - postId: {}", adminId, postId);
+
+        Post post = isPostExist(postId);
+
+        // Check if post is actually deleted
+        if (post.getDeletedAt() == null) {
+            throw new AppException(ErrorCode.POST_NOT_DELETED);
+        }
+
+        // Restore post
+        post.setStatus(PostStatus.ACTIVE);
+        post.setDeletedAt(null);
+        post.setAdminReviewComment("Restored by admin");
+
+        postRepository.save(post);
+
+        log.info("Post {} restored successfully by admin {}", postId, adminId);
+
+        return postMapper.toAdminPostDetailResponse(post);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PostStatisticsResponse getPostStatistics(LocalDate startDate, LocalDate endDate) {
+        log.info("Admin fetching post statistics - startDate: {}, endDate: {}", startDate, endDate);
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+        LocalDateTime startOfWeek = now.minusWeeks(1);
+        LocalDateTime startOfMonth = now.minusMonths(1);
+
+        // Convert LocalDate to LocalDateTime for filtering
+        LocalDateTime filterStartDateTime = startDate != null ? startDate.atStartOfDay() : null;
+        LocalDateTime filterEndDateTime = endDate != null ? endDate.plusDays(1).atStartOfDay() : null;
+
+        PostStatisticsResponse.PostStatisticsResponseBuilder builder = PostStatisticsResponse.builder()
+                .totalPosts(postRepository.countAllPosts())
+                .activePosts(postRepository.countByStatus(PostStatus.ACTIVE))
+                .editPosts(postRepository.countByStatus(PostStatus.EDIT))
+                .deletedPosts(postRepository.countDeletedPosts())
+                .totalViewCount(postRepository.sumAllViewCount())
+                .totalComments(postRepository.countAllComments())
+                .totalReactions(postRepository.countAllReactions())
+                .postsToday(postRepository.countPostsSince(startOfDay))
+                .postsThisWeek(postRepository.countPostsSince(startOfWeek))
+                .postsThisMonth(postRepository.countPostsSince(startOfMonth));
+
+        // Add filtered counts if date range is provided
+        if (startDate != null || endDate != null) {
+            Long filteredCount = postRepository.countPostsInRange(filterStartDateTime, filterEndDateTime);
+            builder.postsInDateRange(filteredCount)
+                   .filterStartDate(startDate)
+                   .filterEndDate(endDate);
+            log.info("Posts in date range: {}", filteredCount);
+        }
+
+        return builder.build();
     }
 
 }
