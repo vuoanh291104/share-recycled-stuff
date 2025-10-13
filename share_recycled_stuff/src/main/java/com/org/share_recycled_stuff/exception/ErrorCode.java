@@ -41,6 +41,8 @@ public enum ErrorCode {
     //Post
     POST_NOT_FOUND("POST_001", "Post not found", HttpStatus.NOT_FOUND),
     POST_ALREADY_DELETED("POST_002", "Post is deleted", HttpStatus.GONE),
+    POST_NOT_DELETED("POST_003", "Post is not deleted", HttpStatus.BAD_REQUEST),
+    INVALID_STATUS_TRANSITION("POST_004", "Invalid status transition", HttpStatus.BAD_REQUEST),
 
     //Image
     IMAGE_NOT_FOUND("IMAGE_001", "Image not found", HttpStatus.NOT_FOUND),

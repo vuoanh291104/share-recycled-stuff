@@ -1,6 +1,7 @@
 package com.org.share_recycled_stuff.mapper;
 
 import com.org.share_recycled_stuff.dto.request.PostRequest;
+import com.org.share_recycled_stuff.dto.response.AdminPostDetailResponse;
 import com.org.share_recycled_stuff.dto.response.PostDetailResponse;
 import com.org.share_recycled_stuff.dto.response.PostResponse;
 import com.org.share_recycled_stuff.entity.Account;
@@ -73,4 +74,42 @@ public interface PostMapper {
     @Mapping(source = "account.id", target = "accountId")
     @Mapping(source = "status", target = "status")
     PostResponse toDeletedPost(Post post);
+
+    // Admin mapping methods
+    @Named("toAuthorInfo")
+    default AdminPostDetailResponse.AuthorInfo toAuthorInfo(Account account) {
+        if (account == null || account.getUser() == null) {
+            throw new AppException(ErrorCode.DATA_INTEGRITY_ERROR);
+        }
+
+        User user = account.getUser();
+
+        return AdminPostDetailResponse.AuthorInfo.builder()
+                .userId(user.getId())
+                .accountId(account.getId())
+                .fullName(user.getFullName())
+                .email(account.getEmail())
+                .phone(user.getPhone())
+                .avatarUrl(user.getAvatarUrl())
+                .isLocked(account.isLocked())
+                .build();
+    }
+
+    @Mapping(source = "account", target = "author", qualifiedByName = "toAuthorInfo")
+    @Mapping(source = "images", target = "images")
+    @Mapping(source = "category.name", target = "category")
+    @Mapping(source = "category.id", target = "categoryId")
+    @Mapping(source = "comments", target = "commentCount", qualifiedByName = "commentsSize")
+    @Mapping(source = "reactions", target = "reactionCount", qualifiedByName = "reactionsSize")
+    AdminPostDetailResponse toAdminPostDetailResponse(Post post);
+
+    @Named("commentsSize")
+    default Integer commentsSize(java.util.Set<?> comments) {
+        return comments == null ? 0 : comments.size();
+    }
+
+    @Named("reactionsSize")
+    default Integer reactionsSize(java.util.Set<?> reactions) {
+        return reactions == null ? 0 : reactions.size();
+    }
 }
