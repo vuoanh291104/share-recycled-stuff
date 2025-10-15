@@ -1,6 +1,8 @@
 package com.org.share_recycled_stuff.controller.api;
 
 import com.org.share_recycled_stuff.config.CustomUserDetail;
+import com.org.share_recycled_stuff.dto.request.DelegationApproveRequest;
+import com.org.share_recycled_stuff.dto.request.DelegationRejectRequest;
 import com.org.share_recycled_stuff.dto.request.DelegationRequest;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
 import com.org.share_recycled_stuff.dto.response.DelegationResponse;
@@ -23,7 +25,7 @@ public class DelegationController {
 
     private final DelegationService delegationService;
 
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'PROXY_SELLER')")
+    @PreAuthorize("hasAnyRole('CUSTOMER')")
     @PostMapping
     public ResponseEntity<ApiResponse<DelegationResponse>> createDelegationRequest(
             @Valid @RequestBody DelegationRequest request,
@@ -41,4 +43,50 @@ public class DelegationController {
                         .build()
         );
     }
+    @PreAuthorize("hasRole('PROXY_SELLER')")
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<ApiResponse<Void>> approveDelegationRequest(
+            @PathVariable Long id,
+            @RequestBody(required = false) DelegationApproveRequest request,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest
+    ) {
+        delegationService.approve(
+                id,
+                userDetail.getAccountId(),
+                request != null ? request.getNote() : null
+        );
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Phê duyệt yêu cầu ủy thác thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .build()
+        );
+    }
+    @PreAuthorize("hasRole('PROXY_SELLER')")
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<Void>> rejectDelegationRequest(
+            @PathVariable Long id,
+            @RequestBody DelegationRejectRequest request,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest
+    ) {
+        delegationService.reject(
+                id,
+                userDetail.getAccountId(),
+                request.getReason()
+        );
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Từ chối yêu cầu ủy thác thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .build()
+        );
+    }
+
+
 }
