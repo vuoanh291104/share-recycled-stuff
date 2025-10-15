@@ -15,6 +15,8 @@ import com.org.share_recycled_stuff.repository.DelegationImagesRepository;
 import com.org.share_recycled_stuff.repository.DelegationRequestsRepository;
 import com.org.share_recycled_stuff.service.DelegationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -123,5 +125,72 @@ public class DelegationServiceImpl implements DelegationService {
         request.setRejectionReason(reason);
         delegationRequestsRepository.save(request);
     }
+    @Transactional
+    @Override
+    public Page<DelegationResponse> getDelegationRequests(Long accountId, String role, Pageable pageable) {
+        Page<DelegationRequests> page;
 
+        if ("PROXY_SELLER".equalsIgnoreCase(role)) {
+            page = delegationRequestsRepository.findByProxySellerId(accountId, pageable);
+        } else if ("CUSTOMER".equalsIgnoreCase(role)) {
+            page = delegationRequestsRepository.findByCustomerId(accountId, pageable);
+        } else {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
+        return page.map(req -> {
+            Set<String> imageUrls = req.getImages() != null
+                    ? req.getImages().stream()
+                    .map(DelegationImages::getImageUrl)
+                    .collect(Collectors.toSet())
+                    : Collections.emptySet();
+
+            return DelegationResponse.builder()
+                    .id(req.getId())
+                    .customerId(req.getCustomer().getId())
+                    .proxySellerId(req.getProxySeller().getId())
+                    .productDescription(req.getProductDescription())
+                    .expectPrice(req.getExpectPrice())
+                    .status(req.getStatus().name())
+                    .bankAccountNumber(req.getBankAccountNumber())
+                    .bankName(req.getBankName())
+                    .accountHolderName(req.getAccountHolderName())
+                    .imageUrls(imageUrls)
+                    .createdAt(req.getCreatedAt())
+                    .updatedAt(req.getUpdatedAt())
+                    .build();
+        });
+    }
+    @Transactional
+    @Override
+    public DelegationResponse getDelegationRequestDetail(Long id, Long accountId, String role) {
+        DelegationRequests request = delegationRequestsRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST, "Không tìm thấy yêu cầu ủy thác"));
+
+        if ("CUSTOMER".equalsIgnoreCase(role) && !request.getCustomer().getId().equals(accountId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+        if ("PROXY_SELLER".equalsIgnoreCase(role) && !request.getProxySeller().getId().equals(accountId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED);
+        }
+
+        Set<String> imageUrls = request.getImages() != null
+                ? request.getImages().stream().map(DelegationImages::getImageUrl).collect(Collectors.toSet())
+                : Collections.emptySet();
+
+        return DelegationResponse.builder()
+                .id(request.getId())
+                .customerId(request.getCustomer().getId())
+                .proxySellerId(request.getProxySeller().getId())
+                .productDescription(request.getProductDescription())
+                .expectPrice(request.getExpectPrice())
+                .status(request.getStatus().name())
+                .bankAccountNumber(request.getBankAccountNumber())
+                .bankName(request.getBankName())
+                .accountHolderName(request.getAccountHolderName())
+                .imageUrls(imageUrls)
+                .createdAt(request.getCreatedAt())
+                .updatedAt(request.getUpdatedAt())
+                .build();
+    }
 }
