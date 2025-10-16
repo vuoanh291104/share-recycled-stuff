@@ -1,5 +1,8 @@
 package com.org.share_recycled_stuff.dto.request;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToMany;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
