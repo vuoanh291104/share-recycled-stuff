@@ -42,6 +42,19 @@ public class EmailServiceImpl implements EmailService {
         sendEmail(to, subject, content);
     }
 
+    @Override
+    public void sendNotificationEmail(String to, String title, String content) {
+        String emailContent = "<div style=\"font-family: Arial, sans-serif; padding: 20px;\">"
+                + "<h2 style=\"color: #333;\">" + title + "</h2>"
+                + "<div style=\"background-color: #f5f5f5; padding: 15px; border-left: 4px solid #4CAF50;\">"
+                + "<p style=\"margin: 0; color: #555;\">" + content + "</p>"
+                + "</div>"
+                + "<hr style=\"margin-top: 20px; border: none; border-top: 1px solid #ddd;\">"
+                + "<p style=\"color: #888; font-size: 12px;\">Đăng nhập vào hệ thống để xem chi tiết.</p>"
+                + "</div>";
+        sendEmail(to, title, emailContent);
+    }
+
     private void sendEmail(String to, String subject, String content) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

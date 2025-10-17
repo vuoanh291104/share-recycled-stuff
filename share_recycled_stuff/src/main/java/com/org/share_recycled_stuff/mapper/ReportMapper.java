@@ -12,10 +12,26 @@ import org.mapstruct.Named;
 @Mapper(componentModel = "spring")
 public interface ReportMapper {
 
-    // Map to ReportResponse for Customer/Proxy Seller
     @Mapping(source = "reporter", target = "reporter", qualifiedByName = "toReporterInfo")
     @Mapping(source = ".", target = "reportedObject", qualifiedByName = "toReportedObjectInfo")
     ReportResponse toReportResponse(Reports report);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "reporter", source = "reporter")
+    @Mapping(target = "reportType", source = "reportType")
+    @Mapping(target = "title", ignore = true)
+    @Mapping(target = "violationType", source = "violationType")
+    @Mapping(target = "content", source = "content")
+    @Mapping(target = "evidenceUrl", source = "evidenceUrl")
+    @Mapping(target = "status", constant = "PENDING")
+    @Mapping(target = "reportedPost", ignore = true)
+    @Mapping(target = "reportedAccount", ignore = true)
+    @Mapping(target = "adminResponse", ignore = true)
+    @Mapping(target = "processedBy", ignore = true)
+    @Mapping(target = "processedAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    Reports toEntity(Account reporter, com.org.share_recycled_stuff.entity.enums.ReportType reportType,
+                     String violationType, String content, String evidenceUrl);
 
     // Map to AdminReportDetailResponse for Admin
     @Mapping(source = "reporter", target = "reporter", qualifiedByName = "toAdminReporterInfo")

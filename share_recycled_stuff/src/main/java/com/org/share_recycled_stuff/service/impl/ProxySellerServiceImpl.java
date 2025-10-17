@@ -11,6 +11,8 @@ import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
 import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.ProxySellerRequestRepository;
+import com.org.share_recycled_stuff.mapper.ProxySellerRequestMapper;
+import com.org.share_recycled_stuff.service.NotificationService;
 import com.org.share_recycled_stuff.service.ProxySellerService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,10 @@ public class ProxySellerServiceImpl implements ProxySellerService {
     private ProxySellerRequestRepository requestRepository;
     @Autowired
     private AccountRepository accountRepository;
+    @Autowired
+    private NotificationService notificationService;
+    @Autowired
+    private ProxySellerRequestMapper proxySellerRequestMapper;
     @Override
     public UpgradeRequestResponse createRequest(UpgradeRequestDTO dto,String email){
         Account account = accountRepository.findByEmail(email)
@@ -40,13 +46,7 @@ public class ProxySellerServiceImpl implements ProxySellerService {
                 .createdAt(LocalDateTime.now())
                 .build();
         ProxySellerRequests saved = requestRepository.save(request);
-        return UpgradeRequestResponse.builder()
-                .requestId(saved.getId())
-                .idCard(saved.getIdCard())
-                .addressDetail(saved.getAddressDetail())
-                .status(saved.getStatus())
-                .createdAt(saved.getCreatedAt())
-                .build();
+        return proxySellerRequestMapper.toResponse(saved);
     }
     @Override
     public Page<UpgradeRequestResponse> getAllRequests(Pageable pageable) {
@@ -85,6 +85,16 @@ public class ProxySellerServiceImpl implements ProxySellerService {
                 .build();
         account.getRoles().add(newRole);
         accountRepository.save(account);
+
+        notificationService.createNotification(
+                account.getId(),
+                "Yêu cầu nâng cấp được duyệt",
+                "Chúc mừng! Yêu cầu nâng cấp lên Proxy Seller của bạn đã được phê duyệt. Bạn có thể bắt đầu sử dụng các tính năng mới.",
+                9,
+                3,
+                "ProxySellerRequest",
+                requestId
+        );
     }
     @Transactional
     @Override
@@ -100,5 +110,19 @@ public class ProxySellerServiceImpl implements ProxySellerService {
         request.setRejectionReason(reason);
         request.setProcessedAt(LocalDateTime.now());
         requestRepository.save(request);
+
+        String rejectionMessage = reason != null && !reason.trim().isEmpty()
+                ? String.format("Yêu cầu nâng cấp lên Proxy Seller của bạn đã bị từ chối. Lý do: %s", reason)
+                : "Yêu cầu nâng cấp lên Proxy Seller của bạn đã bị từ chối.";
+        
+        notificationService.createNotification(
+                request.getAccount().getId(),
+                "Yêu cầu nâng cấp bị từ chối",
+                rejectionMessage,
+                10,
+                3,
+                "ProxySellerRequest",
+                requestId
+        );
     }
 }
