@@ -13,16 +13,19 @@ import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.ApprovedDelegationRequestsRepository;
 import com.org.share_recycled_stuff.repository.DelegationImagesRepository;
 import com.org.share_recycled_stuff.repository.DelegationRequestsRepository;
+import com.org.share_recycled_stuff.mapper.DelegationMapper;
 import com.org.share_recycled_stuff.service.DelegationService;
+import com.org.share_recycled_stuff.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +36,8 @@ public class DelegationServiceImpl implements DelegationService {
     private final AccountRepository accountRepository;
     private final DelegationImagesRepository delegationImagesRepository;
     private final ApprovedDelegationRequestsRepository approvedDelegationRequestsRepository;
+    private final NotificationService notificationService;
+    private final DelegationMapper delegationMapper;
     @Override
     public DelegationResponse createDelegationRequest(DelegationRequest request, Long customerId) {
         Account customer = accountRepository.findById(customerId)
@@ -56,33 +61,23 @@ public class DelegationServiceImpl implements DelegationService {
 
         Set<String> imageUrls = request.getImageUrls() != null ? request.getImageUrls() : Collections.emptySet();
 
-        int order = 1;
-        for (String url : imageUrls) {
-            DelegationImages img = new DelegationImages();
-            img.setDelegationRequest(saved);
-            img.setImageUrl(url);
-            img.setDisplayOrder(order++);
-            delegationImagesRepository.save(img);
+        if (!imageUrls.isEmpty()) {
+            List<DelegationImages> imagesToSave = new ArrayList<>();
+            int order = 1;
+            for (String url : imageUrls) {
+                DelegationImages img = new DelegationImages();
+                img.setDelegationRequest(saved);
+                img.setImageUrl(url);
+                img.setDisplayOrder(order++);
+                imagesToSave.add(img);
+            }
+            delegationImagesRepository.saveAll(imagesToSave);
         }
-        Set<String> imageUrlSet = delegationImagesRepository.findByDelegationRequestId(saved.getId())
-                .stream()
-                .map(DelegationImages::getImageUrl)
-                .collect(Collectors.toSet());
 
-        return DelegationResponse.builder()
-                .id(saved.getId())
-                .customerId(saved.getCustomer().getId())
-                .proxySellerId(saved.getProxySeller().getId())
-                .productDescription(saved.getProductDescription())
-                .expectPrice(saved.getExpectPrice())
-                .status(saved.getStatus().name())
-                .bankAccountNumber(saved.getBankAccountNumber())
-                .bankName(saved.getBankName())
-                .accountHolderName(saved.getAccountHolderName())
-                .imageUrls(imageUrlSet)
-                .createdAt(saved.getCreatedAt())
-                .updatedAt(saved.getUpdatedAt())
-                .build();
+        DelegationRequests savedWithImages = delegationRequestsRepository.findById(saved.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST));
+
+        return delegationMapper.toResponse(savedWithImages);
     }
     @Transactional
     @Override
@@ -108,6 +103,22 @@ public class DelegationServiceImpl implements DelegationService {
                 .build();
 
         approvedDelegationRequestsRepository.save(approved);
+
+        String approvalMessage = note != null && !note.trim().isEmpty()
+                ? String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã được chấp nhận. Ghi chú: %s", 
+                    request.getProductDescription(), note)
+                : String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã được chấp nhận.", 
+                    request.getProductDescription());
+        
+        notificationService.createNotification(
+                request.getCustomer().getId(),
+                "Yêu cầu ký gửi được chấp nhận",
+                approvalMessage,
+                11,
+                3,
+                "DelegationRequest",
+                delegationId
+        );
     }
 
     @Transactional
@@ -124,6 +135,22 @@ public class DelegationServiceImpl implements DelegationService {
         request.setStatus(DelegationRequestsStatus.REJECTED);
         request.setRejectionReason(reason);
         delegationRequestsRepository.save(request);
+
+        String rejectionMessage = reason != null && !reason.trim().isEmpty()
+                ? String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã bị từ chối. Lý do: %s", 
+                    request.getProductDescription(), reason)
+                : String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã bị từ chối.", 
+                    request.getProductDescription());
+        
+        notificationService.createNotification(
+                request.getCustomer().getId(),
+                "Yêu cầu ký gửi bị từ chối",
+                rejectionMessage,
+                12,
+                3,
+                "DelegationRequest",
+                requestId
+        );
     }
     @Transactional
     @Override
@@ -138,28 +165,7 @@ public class DelegationServiceImpl implements DelegationService {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
 
-        return page.map(req -> {
-            Set<String> imageUrls = req.getImages() != null
-                    ? req.getImages().stream()
-                    .map(DelegationImages::getImageUrl)
-                    .collect(Collectors.toSet())
-                    : Collections.emptySet();
-
-            return DelegationResponse.builder()
-                    .id(req.getId())
-                    .customerId(req.getCustomer().getId())
-                    .proxySellerId(req.getProxySeller().getId())
-                    .productDescription(req.getProductDescription())
-                    .expectPrice(req.getExpectPrice())
-                    .status(req.getStatus().name())
-                    .bankAccountNumber(req.getBankAccountNumber())
-                    .bankName(req.getBankName())
-                    .accountHolderName(req.getAccountHolderName())
-                    .imageUrls(imageUrls)
-                    .createdAt(req.getCreatedAt())
-                    .updatedAt(req.getUpdatedAt())
-                    .build();
-        });
+        return page.map(delegationMapper::toResponse);
     }
     @Transactional
     @Override
@@ -174,23 +180,6 @@ public class DelegationServiceImpl implements DelegationService {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
 
-        Set<String> imageUrls = request.getImages() != null
-                ? request.getImages().stream().map(DelegationImages::getImageUrl).collect(Collectors.toSet())
-                : Collections.emptySet();
-
-        return DelegationResponse.builder()
-                .id(request.getId())
-                .customerId(request.getCustomer().getId())
-                .proxySellerId(request.getProxySeller().getId())
-                .productDescription(request.getProductDescription())
-                .expectPrice(request.getExpectPrice())
-                .status(request.getStatus().name())
-                .bankAccountNumber(request.getBankAccountNumber())
-                .bankName(request.getBankName())
-                .accountHolderName(request.getAccountHolderName())
-                .imageUrls(imageUrls)
-                .createdAt(request.getCreatedAt())
-                .updatedAt(request.getUpdatedAt())
-                .build();
+        return delegationMapper.toResponse(request);
     }
 }

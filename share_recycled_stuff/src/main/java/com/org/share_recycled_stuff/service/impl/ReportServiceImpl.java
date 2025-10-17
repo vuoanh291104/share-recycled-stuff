@@ -17,6 +17,7 @@ import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.PostRepository;
 import com.org.share_recycled_stuff.repository.ReportRepository;
 import com.org.share_recycled_stuff.service.AccountManagementService;
+import com.org.share_recycled_stuff.service.NotificationService;
 import com.org.share_recycled_stuff.service.PostService;
 import com.org.share_recycled_stuff.service.ReportService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ public class ReportServiceImpl implements ReportService {
     private final AccountRepository accountRepository;
     private final PostRepository postRepository;
     private final ReportMapper reportMapper;
+    private final NotificationService notificationService;
     
     @Lazy
     private final PostService postService;
@@ -54,17 +56,10 @@ public class ReportServiceImpl implements ReportService {
         Account reporter = accountRepository.findById(reporterId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
 
-        // Validate report type
         ReportType reportType = ReportType.fromCode(request.getReportTypeCode());
 
-        Reports report = Reports.builder()
-                .reporter(reporter)
-                .reportType(reportType)
-                .violationType(request.getViolationType())
-                .content(request.getContent())
-                .evidenceUrl(request.getEvidenceUrl())
-                .status(ReportStatus.PENDING)
-                .build();
+        Reports report = reportMapper.toEntity(reporter, reportType, request.getViolationType(),
+                                               request.getContent(), request.getEvidenceUrl());
 
         // Handle POST_VIOLATION
         if (reportType == ReportType.POST_VIOLATION) {
@@ -172,6 +167,21 @@ public class ReportServiceImpl implements ReportService {
 
         Reports updatedReport = reportRepository.save(report);
         log.info("Report processed successfully - ID: {}", updatedReport.getId());
+
+        String reportedObjectType = updatedReport.getReportedPost() != null ? "bài viết" : "tài khoản";
+        String adminResponseText = request.getAdminResponse() != null && !request.getAdminResponse().trim().isEmpty()
+                ? request.getAdminResponse()
+                : "Báo cáo của bạn đã được xử lý";
+        
+        notificationService.createNotification(
+                updatedReport.getReporter().getId(),
+                "Báo cáo được xử lý",
+                String.format("Báo cáo %s của bạn đã được xử lý. Phản hồi: %s", reportedObjectType, adminResponseText),
+                13,
+                3,
+                "Report",
+                updatedReport.getId()
+        );
 
         return reportMapper.toAdminReportDetailResponse(updatedReport);
     }

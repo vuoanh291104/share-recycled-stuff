@@ -13,6 +13,7 @@ import com.org.share_recycled_stuff.mapper.CommentMapper;
 import com.org.share_recycled_stuff.mapper.PostImageMapper;
 import com.org.share_recycled_stuff.mapper.PostMapper;
 import com.org.share_recycled_stuff.repository.*;
+import com.org.share_recycled_stuff.service.NotificationService;
 import com.org.share_recycled_stuff.service.PostService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class PostServiceImpl implements PostService {
     private final PostMapper postMapper;
     private final PostImageMapper postImageMapper;
     private final CommentMapper commentMapper;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -248,6 +250,34 @@ public class PostServiceImpl implements PostService {
 
         log.info("Post {} reviewed successfully with status {} by admin {}", post.getId(), newStatus, adminId);
 
+        if (newStatus == PostStatus.ACTIVE && currentStatus != PostStatus.ACTIVE) {
+            String reviewComment = request.getAdminReviewComment() != null && !request.getAdminReviewComment().trim().isEmpty()
+                    ? request.getAdminReviewComment()
+                    : "Bài viết của bạn đã được phê duyệt";
+            notificationService.createNotification(
+                    post.getAccount().getId(),
+                    "Bài viết được duyệt",
+                    String.format("Bài viết \"%s\" đã được phê duyệt. %s", post.getTitle(), reviewComment),
+                    3,
+                    1,
+                    "Post",
+                    post.getId()
+            );
+        } else if (newStatus == PostStatus.EDIT) {
+            String reviewComment = request.getAdminReviewComment() != null && !request.getAdminReviewComment().trim().isEmpty()
+                    ? request.getAdminReviewComment()
+                    : "Bài viết cần chỉnh sửa";
+            notificationService.createNotification(
+                    post.getAccount().getId(),
+                    "Bài viết cần chỉnh sửa",
+                    String.format("Bài viết \"%s\" cần chỉnh sửa. Lý do: %s", post.getTitle(), reviewComment),
+                    4,
+                    1,
+                    "Post",
+                    post.getId()
+            );
+        }
+
         return getPostDetailForAdmin(post.getId());
     }
 
@@ -279,6 +309,19 @@ public class PostServiceImpl implements PostService {
 
         log.info("Post {} deleted successfully by admin {}", postId, adminId);
 
+        String deleteReason = reason != null && !reason.trim().isEmpty()
+                ? reason
+                : "Vi phạm quy định của hệ thống";
+        notificationService.createNotification(
+                post.getAccount().getId(),
+                "Bài viết bị xóa",
+                String.format("Bài viết \"%s\" đã bị xóa bởi quản trị viên. Lý do: %s", post.getTitle(), deleteReason),
+                5,
+                3,
+                "Post",
+                post.getId()
+        );
+
         return postMapper.toAdminPostDetailResponse(post);
     }
 
@@ -290,32 +333,37 @@ public class PostServiceImpl implements PostService {
         List<Long> successfulPostIds = new ArrayList<>();
         List<BulkDeletePostResponse.PostOperationError> errors = new ArrayList<>();
         Map<Long, String> postTitles = new HashMap<>();
+        List<Post> postsToUpdate = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
 
         for (Long postId : request.getPostIds()) {
             try {
                 Post post = postRepository.findById(postId)
                         .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
 
-                // Store post title for UX
                 postTitles.put(postId, post.getTitle());
 
                 post.setStatus(PostStatus.DELETED);
-                post.setDeletedAt(LocalDateTime.now());
+                post.setDeletedAt(now);
 
                 if (request.getReason() != null && !request.getReason().trim().isEmpty()) {
                     post.setAdminReviewComment(request.getReason());
                 }
 
-                postRepository.save(post);
+                postsToUpdate.add(post);
                 successfulPostIds.add(postId);
 
             } catch (Exception e) {
-                log.error("Error deleting post {}: {}", postId, e.getMessage());
+                log.error("Error preparing post {} for deletion: {}", postId, e.getMessage());
                 errors.add(BulkDeletePostResponse.PostOperationError.builder()
                         .postId(postId)
                         .errorMessage(e.getMessage())
                         .build());
             }
+        }
+
+        if (!postsToUpdate.isEmpty()) {
+            postRepository.saveAll(postsToUpdate);
         }
 
         log.info("Bulk delete completed - success: {}, failed: {}", successfulPostIds.size(), errors.size());

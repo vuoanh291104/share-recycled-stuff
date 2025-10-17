@@ -17,6 +17,7 @@ import com.org.share_recycled_stuff.mapper.UserMapper;
 import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.UserRepository;
 import com.org.share_recycled_stuff.service.AccountManagementService;
+import com.org.share_recycled_stuff.service.NotificationService;
 import com.org.share_recycled_stuff.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final SecurityUtils securityUtils;
+    private final NotificationService notificationService;
     
     private static final int MAX_LOCK_DURATION_MINUTES = 60 * 24 * 30; // 30 days
     private static final int MIN_REASON_LENGTH = 5;
@@ -127,12 +129,37 @@ public class AccountManagementServiceImpl implements AccountManagementService {
 
         List<AccountLockResponse> successes = new ArrayList<>();
         List<AccountOperationError> failures = new ArrayList<>();
+        List<Account> accountsToUpdate = new ArrayList<>();
+        Account currentAdmin = securityUtils.getCurrentAccount();
+
+        String normalizedReason = normalizeReason(request.getReason());
+        Integer sanitizedDuration = sanitizeDuration(request.getDurationMinutes());
+        LocalDateTime now = LocalDateTime.now();
 
         for (Long accountId : request.getAccountIds()) {
             try {
                 Account account = getAccountOrThrow(accountId);
-                AccountLockResponse response = performLock(account, request.getReason(), request.getDurationMinutes());
-                successes.add(response);
+                
+                if (currentAdmin.getId().equals(account.getId())) {
+                    throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot lock your own account");
+                }
+                
+                if (isAdminAccount(account)) {
+                    throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot lock administrator accounts");
+                }
+
+                if (account.isLocked()) {
+                    throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Account is already locked");
+                }
+
+                account.setLocked(true);
+                account.setLockedReason(normalizedReason);
+                account.setLockedAt(now);
+                account.setLockedUntil(sanitizedDuration != null ? now.plusMinutes(sanitizedDuration) : null);
+                
+                accountsToUpdate.add(account);
+                successes.add(buildResponse(account, "Account locked successfully"));
+
             } catch (AppException ex) {
                 log.warn("Bulk lock failed for account {}: {}", accountId, ex.getMessage());
                 failures.add(AccountOperationError.builder()
@@ -150,6 +177,26 @@ public class AccountManagementServiceImpl implements AccountManagementService {
             }
         }
 
+        if (!accountsToUpdate.isEmpty()) {
+            accountRepository.saveAll(accountsToUpdate);
+            
+            String lockMessage = sanitizedDuration != null
+                    ? String.format("Tài khoản của bạn đã bị khóa trong %d phút. Lý do: %s", sanitizedDuration, normalizedReason)
+                    : String.format("Tài khoản của bạn đã bị khóa vĩnh viễn. Lý do: %s", normalizedReason);
+            
+            for (Account account : accountsToUpdate) {
+                notificationService.createNotification(
+                        account.getId(),
+                        "Tài khoản bị khóa",
+                        lockMessage,
+                        6,
+                        3,
+                        "Account",
+                        account.getId()
+                );
+            }
+        }
+
         return BulkAccountOperationResponse.builder()
                 .successes(successes)
                 .failures(failures)
@@ -163,12 +210,30 @@ public class AccountManagementServiceImpl implements AccountManagementService {
 
         List<AccountLockResponse> successes = new ArrayList<>();
         List<AccountOperationError> failures = new ArrayList<>();
+        List<Account> accountsToUpdate = new ArrayList<>();
+        Account currentAdmin = securityUtils.getCurrentAccount();
 
         for (Long accountId : request.getAccountIds()) {
             try {
                 Account account = getAccountOrThrow(accountId);
-                AccountLockResponse response = performUnlock(account);
-                successes.add(response);
+                
+                if (currentAdmin.getId().equals(account.getId())) {
+                    throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot unlock your own account");
+                }
+                
+                if (!account.isLocked()) {
+                    throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Account is not locked");
+                }
+
+                account.setLocked(false);
+                account.setLockedReason(null);
+                account.setLockedAt(null);
+                account.setLockedUntil(null);
+                account.setLoginAttempts(0);
+                
+                accountsToUpdate.add(account);
+                successes.add(buildResponse(account, "Account unlocked successfully"));
+
             } catch (AppException ex) {
                 log.warn("Bulk unlock failed for account {}: {}", accountId, ex.getMessage());
                 failures.add(AccountOperationError.builder()
@@ -183,6 +248,22 @@ public class AccountManagementServiceImpl implements AccountManagementService {
                         .errorCode(ErrorCode.INTERNAL_ERROR.getCode())
                         .message("Unexpected error: " + ex.getMessage())
                         .build());
+            }
+        }
+
+        if (!accountsToUpdate.isEmpty()) {
+            accountRepository.saveAll(accountsToUpdate);
+            
+            for (Account account : accountsToUpdate) {
+                notificationService.createNotification(
+                        account.getId(),
+                        "Tài khoản được mở khóa",
+                        "Tài khoản của bạn đã được mở khóa. Bạn có thể đăng nhập và sử dụng dịch vụ trở lại.",
+                        7,
+                        3,
+                        "Account",
+                        account.getId()
+                );
             }
         }
 
@@ -220,6 +301,20 @@ public class AccountManagementServiceImpl implements AccountManagementService {
 
         accountRepository.save(account);
 
+        String lockMessage = sanitizedDuration != null
+                ? String.format("Tài khoản của bạn đã bị khóa trong %d phút. Lý do: %s", sanitizedDuration, normalizedReason)
+                : String.format("Tài khoản của bạn đã bị khóa vĩnh viễn. Lý do: %s", normalizedReason);
+        
+        notificationService.createNotification(
+                account.getId(),
+                "Tài khoản bị khóa",
+                lockMessage,
+                6,
+                3,
+                "Account",
+                account.getId()
+        );
+
         return buildResponse(account, "Account locked successfully");
     }
 
@@ -242,6 +337,16 @@ public class AccountManagementServiceImpl implements AccountManagementService {
         account.setLoginAttempts(0);
 
         accountRepository.save(account);
+
+        notificationService.createNotification(
+                account.getId(),
+                "Tài khoản được mở khóa",
+                "Tài khoản của bạn đã được mở khóa. Bạn có thể đăng nhập và sử dụng dịch vụ trở lại.",
+                7,
+                3,
+                "Account",
+                account.getId()
+        );
 
         return buildResponse(account, "Account unlocked successfully");
     }
