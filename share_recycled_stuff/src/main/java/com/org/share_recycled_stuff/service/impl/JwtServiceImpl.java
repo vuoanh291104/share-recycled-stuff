@@ -9,20 +9,20 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.UUID;
-import java.time.Duration;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -31,17 +31,13 @@ public class JwtServiceImpl implements JwtService {
 
     private static final String BLACKLIST_ACCESS_PREFIX = "blacklist:access:";
     private static final String BLACKLIST_REFRESH_PREFIX = "blacklist:refresh:";
-
+    private final StringRedisTemplate stringRedisTemplate;
     @Value("${app.jwt.secret}")
     private String jwtSecret;
-
     @Value("${app.jwt.access-token-expiration}")
     private Long accessTokenExpiration;
-
     @Value("${app.jwt.refresh-token-expiration}")
     private Long refreshTokenExpiration;
-
-    private final StringRedisTemplate stringRedisTemplate;
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
@@ -169,25 +165,25 @@ public class JwtServiceImpl implements JwtService {
                 log.warn("Token does not have JTI claim");
                 return false;
             }
-            
+
             String tokenType = isAccessToken(token) ? "ACCESS" : "REFRESH";
             String key = buildBlacklistKey(token);
-            
+
             long startTime = System.currentTimeMillis();
             Boolean hasKey = stringRedisTemplate.hasKey(key);
             long duration = System.currentTimeMillis() - startTime;
-            
+
             boolean isBlacklisted = Boolean.TRUE.equals(hasKey);
-            
+
             // Log for monitoring (debug level for normal checks, warn for blocked tokens)
             if (isBlacklisted) {
-                log.warn("Blacklisted token detected - Type: {}, JTI: {}, Duration: {}ms", 
-                         tokenType, jtiValue, duration);
+                log.warn("Blacklisted token detected - Type: {}, JTI: {}, Duration: {}ms",
+                        tokenType, jtiValue, duration);
             } else {
-                log.debug("Token check - Type: {}, JTI: {}, Blacklisted: false, Duration: {}ms", 
-                          tokenType, jtiValue, duration);
+                log.debug("Token check - Type: {}, JTI: {}, Blacklisted: false, Duration: {}ms",
+                        tokenType, jtiValue, duration);
             }
-            
+
             return isBlacklisted;
         } catch (RedisConnectionFailureException e) {
             log.error("Redis unavailable when checking blacklist - failing safe (allowing token)", e);
@@ -217,15 +213,15 @@ public class JwtServiceImpl implements JwtService {
 
         String tokenType = isAccessToken(token) ? "ACCESS" : "REFRESH";
         String key = buildBlacklistKey(token);
-        
+
         try {
             long startTime = System.currentTimeMillis();
             stringRedisTemplate.opsForValue().set(key, "1", ttl);
             long duration = System.currentTimeMillis() - startTime;
-            
+
             // Enhanced metric logging for monitoring
-            log.info("Token blacklisted - Type: {}, TTL: {}s, JTI: {}, Key: {}, Duration: {}ms", 
-                     tokenType, ttl.getSeconds(), jtiValue, key, duration);
+            log.info("Token blacklisted - Type: {}, TTL: {}s, JTI: {}, Key: {}, Duration: {}ms",
+                    tokenType, ttl.getSeconds(), jtiValue, key, duration);
         } catch (RedisConnectionFailureException ex) {
             log.error("Redis unavailable when blacklisting token - Type: {}, JTI: {}", tokenType, jtiValue, ex);
             throw new AppException(ErrorCode.SERVICE_UNAVAILABLE, ex);

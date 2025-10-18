@@ -45,4 +45,7 @@ public interface PostService {
     AdminPostDetailResponse restorePost(Long postId, Long adminId);
 
     PostStatisticsResponse getPostStatistics(LocalDate startDate, LocalDate endDate);
+
+    // Main page feed
+    Page<PostDetailResponse> getMainPageFeed(String clientIp, Pageable pageable);
 }

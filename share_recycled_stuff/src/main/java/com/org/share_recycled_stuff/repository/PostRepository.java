@@ -111,6 +111,22 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT COUNT(p) FROM Post p WHERE " +
             "(:startDate IS NULL OR p.createdAt >= :startDate) " +
             "AND (:endDate IS NULL OR p.createdAt < :endDate)")
-    Long countPostsInRange(@Param("startDate") LocalDateTime startDate, 
+    Long countPostsInRange(@Param("startDate") LocalDateTime startDate,
                            @Param("endDate") LocalDateTime endDate);
+
+    // Main page feed - fetch approved posts with user location
+    @Query("""
+            SELECT DISTINCT p FROM Post p
+            LEFT JOIN FETCH p.images
+            LEFT JOIN FETCH p.account a
+            LEFT JOIN FETCH a.user u
+            LEFT JOIN FETCH p.category
+            WHERE p.status = :status
+            AND p.deletedAt IS NULL
+            ORDER BY p.createdAt DESC
+            """)
+    Page<Post> findApprovedPostsWithLocation(
+            @Param("status") PostStatus status,
+            Pageable pageable
+    );
 }

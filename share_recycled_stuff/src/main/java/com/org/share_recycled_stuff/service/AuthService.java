@@ -1,10 +1,6 @@
 package com.org.share_recycled_stuff.service;
 
-import com.org.share_recycled_stuff.dto.request.ChangePasswordRequest;
-import com.org.share_recycled_stuff.dto.request.ForgotPasswordRequest;
-import com.org.share_recycled_stuff.dto.request.LoginEmailRequest;
-import com.org.share_recycled_stuff.dto.request.RegisterRequest;
-import com.org.share_recycled_stuff.dto.request.ResetPasswordRequest;
+import com.org.share_recycled_stuff.dto.request.*;
 import com.org.share_recycled_stuff.dto.response.LoginResponse;
 import com.org.share_recycled_stuff.dto.response.PasswordResetResponse;
 import com.org.share_recycled_stuff.dto.response.VerificationResponse;

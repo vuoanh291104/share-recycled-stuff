@@ -38,7 +38,7 @@ public class RoleManagementServiceImpl implements RoleManagementService {
         log.info("Attempting to assign role {} to user {}", request.getRole(), request.getUserId());
 
         Account currentAdmin = securityUtils.getCurrentAccount();
-        
+
         if (currentAdmin.getUser().getId().equals(request.getUserId())) {
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot assign roles to your own account");
         }
@@ -54,7 +54,7 @@ public class RoleManagementServiceImpl implements RoleManagementService {
         // Check if user already has this role
         boolean hasRole = account.getRoles().stream()
                 .anyMatch(userRole -> userRole.getRoleType() == request.getRole());
-        
+
         if (hasRole) {
             log.warn("User {} already has role {}", user.getId(), request.getRole());
             throw new AppException(ErrorCode.USER_ALREADY_HAS_ROLE);
@@ -69,10 +69,10 @@ public class RoleManagementServiceImpl implements RoleManagementService {
 
         userRoleRepository.save(newRole);
         account.getRoles().add(newRole);
-        
-        log.info("Admin {} assigned role {} to user {}", 
+
+        log.info("Admin {} assigned role {} to user {}",
                 currentAdmin.getEmail(), request.getRole(), user.getId());
-        
+
         return buildResponse(user, "ASSIGNED", request.getRole(), currentAdmin.getEmail());
     }
 
@@ -82,7 +82,7 @@ public class RoleManagementServiceImpl implements RoleManagementService {
         log.info("Attempting to revoke role {} from user {}", request.getRole(), request.getUserId());
 
         Account currentAdmin = securityUtils.getCurrentAccount();
-        
+
         if (currentAdmin.getUser().getId().equals(request.getUserId())) {
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot revoke roles from your own account");
         }
@@ -115,13 +115,13 @@ public class RoleManagementServiceImpl implements RoleManagementService {
             log.warn("Cannot remove the only role from user {}", user.getId());
             throw new AppException(ErrorCode.USER_MUST_HAVE_AT_LEAST_ONE_ROLE);
         }
-        
+
         account.getRoles().remove(roleToRemove);
         userRoleRepository.delete(roleToRemove);
-        
-        log.info("Admin {} revoked role {} from user {}", 
+
+        log.info("Admin {} revoked role {} from user {}",
                 currentAdmin.getEmail(), request.getRole(), user.getId());
-        
+
         return buildResponse(user, "REVOKED", request.getRole(), currentAdmin.getEmail());
     }
 

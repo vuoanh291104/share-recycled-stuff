@@ -2,11 +2,7 @@ package com.org.share_recycled_stuff.service.impl;
 
 import com.org.share_recycled_stuff.config.CustomUserDetail;
 import com.org.share_recycled_stuff.constants.AuthConstants;
-import com.org.share_recycled_stuff.dto.request.ChangePasswordRequest;
-import com.org.share_recycled_stuff.dto.request.ForgotPasswordRequest;
-import com.org.share_recycled_stuff.dto.request.LoginEmailRequest;
-import com.org.share_recycled_stuff.dto.request.RegisterRequest;
-import com.org.share_recycled_stuff.dto.request.ResetPasswordRequest;
+import com.org.share_recycled_stuff.dto.request.*;
 import com.org.share_recycled_stuff.dto.response.LoginResponse;
 import com.org.share_recycled_stuff.dto.response.PasswordResetResponse;
 import com.org.share_recycled_stuff.dto.response.VerificationResponse;
@@ -303,8 +299,8 @@ public class AuthServiceImpl implements AuthService {
                 });
 
         // Check if token has expired
-        if (account.getResetTokenExpires() == null || 
-            account.getResetTokenExpires().isBefore(LocalDateTime.now())) {
+        if (account.getResetTokenExpires() == null ||
+                account.getResetTokenExpires().isBefore(LocalDateTime.now())) {
             log.warn("Reset password token expired for email: {}", account.getEmail());
             throw new AppException(ErrorCode.RESET_TOKEN_EXPIRED);
         }
@@ -331,8 +327,8 @@ public class AuthServiceImpl implements AuthService {
                 });
 
         // Check if token has expired
-        if (account.getResetTokenExpires() == null || 
-            account.getResetTokenExpires().isBefore(LocalDateTime.now())) {
+        if (account.getResetTokenExpires() == null ||
+                account.getResetTokenExpires().isBefore(LocalDateTime.now())) {
             log.warn("Reset password token expired for email: {}", account.getEmail());
             throw new AppException(ErrorCode.RESET_TOKEN_EXPIRED);
         }
@@ -346,12 +342,12 @@ public class AuthServiceImpl implements AuthService {
         account.setPassword(passwordEncoder.encode(request.getNewPassword()));
         account.setResetPasswordToken(null);
         account.setResetTokenExpires(null);
-        
+
         // Reset login attempts if any
         account.setLoginAttempts(0);
-        
+
         accountRepository.save(account);
-        
+
         log.info("Password reset successful for email: {}", account.getEmail());
         return "Đặt lại mật khẩu thành công";
     }

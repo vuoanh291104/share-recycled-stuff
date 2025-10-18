@@ -46,7 +46,7 @@ public enum ErrorCode {
 
     //Image
     IMAGE_NOT_FOUND("IMAGE_001", "Image not found", HttpStatus.NOT_FOUND),
-    
+
     //Report
     REPORT_NOT_FOUND("REPORT_001", "Report not found", HttpStatus.NOT_FOUND),
     ALREADY_REPORTED_POST("REPORT_002", "You have already reported this post", HttpStatus.CONFLICT),
@@ -55,10 +55,10 @@ public enum ErrorCode {
     CANNOT_REPORT_OWN_POST("REPORT_005", "Cannot report your own post", HttpStatus.BAD_REQUEST),
     CANNOT_REPORT_YOURSELF("REPORT_006", "Cannot report yourself", HttpStatus.BAD_REQUEST),
     INVALID_REPORT_TARGET("REPORT_007", "Invalid report target - must specify either post or account", HttpStatus.BAD_REQUEST),
-    
+
     //Notification
     NOTIFICATION_NOT_FOUND("NOTIFICATION_001", "Notification not found", HttpStatus.NOT_FOUND),
-    
+
     // Validation
     INVALID_INPUT("VAL_001", "Invalid input: %s", HttpStatus.BAD_REQUEST),
     MISSING_REQUIRED_FIELD("VAL_002", "Missing required field: %s", HttpStatus.BAD_REQUEST),
