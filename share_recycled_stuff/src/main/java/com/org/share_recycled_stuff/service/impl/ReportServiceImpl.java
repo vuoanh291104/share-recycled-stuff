@@ -40,10 +40,10 @@ public class ReportServiceImpl implements ReportService {
     private final PostRepository postRepository;
     private final ReportMapper reportMapper;
     private final NotificationService notificationService;
-    
+
     @Lazy
     private final PostService postService;
-    
+
     @Lazy
     private final AccountManagementService accountManagementService;
 
@@ -59,7 +59,7 @@ public class ReportServiceImpl implements ReportService {
         ReportType reportType = ReportType.fromCode(request.getReportTypeCode());
 
         Reports report = reportMapper.toEntity(reporter, reportType, request.getViolationType(),
-                                               request.getContent(), request.getEvidenceUrl());
+                request.getContent(), request.getEvidenceUrl());
 
         // Handle POST_VIOLATION
         if (reportType == ReportType.POST_VIOLATION) {
@@ -144,7 +144,7 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional
     public AdminReportDetailResponse processReport(AdminReportActionRequest request, Long adminId) {
-        log.info("Processing report - ID: {}, admin: {}, action: {}", 
+        log.info("Processing report - ID: {}, admin: {}, action: {}",
                 request.getReportId(), adminId, request.getActionType());
 
         Reports report = reportRepository.findByIdWithDetails(request.getReportId())
@@ -172,7 +172,7 @@ public class ReportServiceImpl implements ReportService {
         String adminResponseText = request.getAdminResponse() != null && !request.getAdminResponse().trim().isEmpty()
                 ? request.getAdminResponse()
                 : "Báo cáo của bạn đã được xử lý";
-        
+
         notificationService.createNotification(
                 updatedReport.getReporter().getId(),
                 "Báo cáo được xử lý",
@@ -188,7 +188,7 @@ public class ReportServiceImpl implements ReportService {
 
     private void executeReportAction(Reports report, AdminReportActionRequest request, Long adminId) {
         String actionType = request.getActionType();
-        
+
         if ("DELETE_POST".equals(actionType)) {
             if (report.getReportedPost() != null) {
                 Long postId = report.getReportedPost().getId();
@@ -203,7 +203,7 @@ public class ReportServiceImpl implements ReportService {
                 Long accountId = report.getReportedAccount().getId();
                 String reason = "Tài khoản vi phạm quy định: " + request.getAdminResponse();
                 log.info("Executing LOCK_ACCOUNT action for accountId: {}", accountId);
-                
+
                 LockAccountRequest lockRequest = LockAccountRequest.builder()
                         .accountId(accountId)
                         .reason(reason)

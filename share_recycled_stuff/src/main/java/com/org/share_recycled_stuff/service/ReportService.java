@@ -10,21 +10,21 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface ReportService {
-    
+
     // Customer/Proxy Seller methods
     ReportResponse createReport(ReportRequest request, Long reporterId);
-    
+
     Page<ReportResponse> getMyReports(Long reporterId, Pageable pageable);
-    
+
     // Admin methods
     Page<AdminReportDetailResponse> getAllReports(
             ReportType reportType,
             ReportStatus status,
             Pageable pageable
     );
-    
+
     AdminReportDetailResponse getReportDetail(Long reportId);
-    
+
     AdminReportDetailResponse processReport(AdminReportActionRequest request, Long adminId);
 }
 

@@ -97,10 +97,6 @@ public class UserProfileServiceImpl implements UserProfileService {
             user.setWard(sanitizeOptional(request.getWard()));
         }
 
-        if (request.getDistrict() != null) {
-            user.setDistrict(sanitizeOptional(request.getDistrict()));
-        }
-
         if (request.getCity() != null) {
             user.setCity(sanitizeOptional(request.getCity()));
         }

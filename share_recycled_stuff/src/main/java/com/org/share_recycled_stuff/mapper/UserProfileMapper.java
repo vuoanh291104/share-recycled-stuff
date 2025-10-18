@@ -24,7 +24,6 @@ public interface UserProfileMapper {
     @Mapping(source = "phone", target = "phoneNumber")
     @Mapping(source = "address", target = "address")
     @Mapping(source = "ward", target = "ward")
-    @Mapping(source = "district", target = "district")
     @Mapping(source = "city", target = "city")
     @Mapping(source = "idCard", target = "idCard")
     @Mapping(source = "avatarUrl", target = "avatarUrl")

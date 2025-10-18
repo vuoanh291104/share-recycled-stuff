@@ -8,11 +8,14 @@ import org.springframework.data.domain.Pageable;
 
 public interface ProxySellerService {
     UpgradeRequestResponse createRequest(UpgradeRequestDTO upgradeRequestDTO, String email);
+
     Page<UpgradeRequestResponse> getAllRequests(Pageable pageable);
 
     Page<UpgradeRequestResponse> getRequestsByStatus(RequestStatus status, Pageable pageable);
 
     Page<UpgradeRequestResponse> getRequestName(String fullName, Pageable pageable);
+
     void approveRequest(Long requestId);
+
     void rejectRequest(Long requestId, String reason);
 }

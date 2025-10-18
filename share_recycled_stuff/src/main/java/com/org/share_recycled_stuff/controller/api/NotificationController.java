@@ -8,6 +8,9 @@ import com.org.share_recycled_stuff.dto.response.NotificationResponse;
 import com.org.share_recycled_stuff.dto.response.UnreadCountResponse;
 import com.org.share_recycled_stuff.service.NotificationService;
 import com.org.share_recycled_stuff.utils.SseEmitterManager;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 
+@Tag(name = "Notifications", description = "Real-time notifications and SSE streaming endpoints")
 @Slf4j
 @RestController
 @RequestMapping("/api/notifications")
@@ -37,11 +41,25 @@ public class NotificationController {
     private final NotificationService notificationService;
     private final SseEmitterManager sseEmitterManager;
 
+    @Operation(
+            summary = "Stream real-time notifications",
+            description = "Establish SSE (Server-Sent Events) connection for real-time notification streaming. Connection timeout: 30 minutes."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "SSE stream established successfully. Returns Server-Sent Events stream (NOT ApiResponse wrapper)."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token required."
+            )
+    })
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamNotifications(@AuthenticationPrincipal CustomUserDetail userDetail) {
         Long accountId = userDetail.getAccountId();
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
-        
+
         sseEmitterManager.addEmitter(accountId, emitter);
         log.info("SSE connection established for account ID: {}", accountId);
 
@@ -71,14 +89,32 @@ public class NotificationController {
         return emitter;
     }
 
+    @Operation(
+            summary = "Create notification (Admin)",
+            description = "Admin creates and broadcasts a notification to specific user or all users"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "Notification created successfully. Returns ApiResponse<NotificationResponse>."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required. Returns ApiResponse with error."
+            )
+    })
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<NotificationResponse>> createNotification(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Notification details including recipient and message",
+                    required = true
+            )
             @Valid @RequestBody CreateNotificationRequest request,
             HttpServletRequest httpRequest) {
-        
+
         NotificationResponse response = notificationService.createNotification(request);
-        
+
         return ResponseEntity.ok(
                 ApiResponse.<NotificationResponse>builder()
                         .code(HttpStatus.CREATED.value())
@@ -90,6 +126,20 @@ public class NotificationController {
         );
     }
 
+    @Operation(
+            summary = "Get all notifications",
+            description = "Retrieve paginated list of all notifications for current user with sorting"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved notifications. Returns ApiResponse<Page<NotificationResponse>>."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token required. Returns ApiResponse with error."
+            )
+    })
     @GetMapping
     public ResponseEntity<ApiResponse<Page<NotificationResponse>>> getNotifications(
             @RequestParam(defaultValue = "0") int page,
@@ -118,6 +168,20 @@ public class NotificationController {
         );
     }
 
+    @Operation(
+            summary = "Get unread notifications",
+            description = "Retrieve all unread notifications for current user"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved unread notifications. Returns ApiResponse<List<NotificationResponse>>."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token required. Returns ApiResponse with error."
+            )
+    })
     @GetMapping("/unread")
     public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUnreadNotifications(
             @AuthenticationPrincipal CustomUserDetail userDetail,
@@ -137,6 +201,20 @@ public class NotificationController {
         );
     }
 
+    @Operation(
+            summary = "Get unread notification count",
+            description = "Get the count of unread notifications for current user"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved unread count. Returns ApiResponse<UnreadCountResponse>."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token required. Returns ApiResponse with error."
+            )
+    })
     @GetMapping("/unread-count")
     public ResponseEntity<ApiResponse<UnreadCountResponse>> getUnreadCount(
             @AuthenticationPrincipal CustomUserDetail userDetail,
@@ -156,8 +234,26 @@ public class NotificationController {
         );
     }
 
+    @Operation(
+            summary = "Mark notifications as read",
+            description = "Mark specific notifications as read by providing their IDs"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully marked as read. Returns ApiResponse<Integer> with count of updated notifications."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token required. Returns ApiResponse with error."
+            )
+    })
     @PutMapping("/mark-read")
     public ResponseEntity<ApiResponse<Integer>> markAsRead(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "List of notification IDs to mark as read",
+                    required = true
+            )
             @Valid @RequestBody MarkAsReadRequest request,
             @AuthenticationPrincipal CustomUserDetail userDetail,
             HttpServletRequest httpRequest) {
@@ -178,6 +274,20 @@ public class NotificationController {
         );
     }
 
+    @Operation(
+            summary = "Mark all notifications as read",
+            description = "Mark all unread notifications as read for current user"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully marked all as read. Returns ApiResponse<Integer> with count of updated notifications."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token required. Returns ApiResponse with error."
+            )
+    })
     @PutMapping("/mark-all-read")
     public ResponseEntity<ApiResponse<Integer>> markAllAsRead(
             @AuthenticationPrincipal CustomUserDetail userDetail,
@@ -196,8 +306,31 @@ public class NotificationController {
         );
     }
 
+    @Operation(
+            summary = "Delete notification",
+            description = "Delete a specific notification by ID"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully deleted notification. Returns ApiResponse<Void>."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token required. Returns ApiResponse with error."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Notification not found. Returns ApiResponse with error."
+            )
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteNotification(
+            @io.swagger.v3.oas.annotations.Parameter(
+                    description = "Notification ID to delete",
+                    required = true,
+                    example = "1"
+            )
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetail userDetail,
             HttpServletRequest httpRequest) {
@@ -214,8 +347,27 @@ public class NotificationController {
         );
     }
 
+    @Operation(
+            summary = "Get notifications by type",
+            description = "Retrieve paginated notifications filtered by type for current user"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved notifications by type. Returns ApiResponse<Page<NotificationResponse>>."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token required. Returns ApiResponse with error."
+            )
+    })
     @GetMapping("/type/{type}")
     public ResponseEntity<ApiResponse<Page<NotificationResponse>>> getNotificationsByType(
+            @io.swagger.v3.oas.annotations.Parameter(
+                    description = "Notification type code (1=SYSTEM, 2=POST_STATUS, 3=COMMENT, etc.)",
+                    required = true,
+                    example = "2"
+            )
             @PathVariable Integer type,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,

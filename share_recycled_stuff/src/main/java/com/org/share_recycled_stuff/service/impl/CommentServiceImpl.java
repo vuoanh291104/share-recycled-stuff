@@ -17,6 +17,8 @@ import com.org.share_recycled_stuff.service.CommentService;
 import com.org.share_recycled_stuff.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,7 +48,7 @@ public class CommentServiceImpl implements CommentService {
 
         Comments comment = commentMapper.toEntity(post, account, request.getContent(), null);
         Comments savedComment = commentsRepository.save(comment);
-        
+
         log.info("Created new comment with ID: {} for post: {} by account: {}",
                 savedComment.getId(), post.getId(), account.getId());
 
@@ -74,10 +76,10 @@ public class CommentServiceImpl implements CommentService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
 
-        Comments reply = commentMapper.toEntity(parentComment.getPost(), account, 
-                                                request.getContent(), parentComment);
+        Comments reply = commentMapper.toEntity(parentComment.getPost(), account,
+                request.getContent(), parentComment);
         Comments savedReply = commentsRepository.save(reply);
-        
+
         log.info("Created reply with ID: {} for comment: {} by account: {}",
                 savedReply.getId(), parentComment.getId(), account.getId());
 
@@ -114,6 +116,7 @@ public class CommentServiceImpl implements CommentService {
 
         return commentMapper.toResponse(updated);
     }
+
     @Override
     public void deleteComment(Long id, Long userId) {
         Comments comment = commentsRepository.findById(id)
@@ -122,23 +125,38 @@ public class CommentServiceImpl implements CommentService {
         if (!comment.getAccount().getId().equals(userId)) {
             throw new AppException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền xóa comment này");
         }
-        
+
         LocalDateTime now = LocalDateTime.now();
         List<Comments> commentsToUpdate = new ArrayList<>();
-        
+
         collectCommentsRecursively(comment, now, commentsToUpdate);
-        
+
         commentsRepository.saveAll(commentsToUpdate);
     }
 
     private void collectCommentsRecursively(Comments comment, LocalDateTime deletedAt, List<Comments> collector) {
         comment.setDeletedAt(deletedAt);
         collector.add(comment);
-        
+
         if (comment.getChildComments() != null && !comment.getChildComments().isEmpty()) {
             for (Comments child : comment.getChildComments()) {
                 collectCommentsRecursively(child, deletedAt, collector);
             }
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CommentResponse> getCommentReplies(Long parentCommentId, Pageable pageable) {
+        log.info("Fetching replies for comment ID: {}", parentCommentId);
+
+        // Verify parent comment exists
+        commentsRepository.findById(parentCommentId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESOURCE_NOT_FOUND, "Comment không tồn tại"));
+
+        Page<Comments> repliesPage = commentsRepository.findByParentCommentIdOrderByCreatedAtAsc(
+                parentCommentId, pageable);
+
+        return repliesPage.map(commentMapper::toResponse);
     }
 }

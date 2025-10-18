@@ -12,9 +12,14 @@ import org.springframework.data.domain.Pageable;
 
 public interface AccountManagementService {
     AccountLockResponse lockAccount(LockAccountRequest request);
+
     AccountLockResponse unlockAccount(UnlockAccountRequest request);
+
     BulkAccountOperationResponse bulkLockAccounts(BulkLockRequest request);
+
     BulkAccountOperationResponse bulkUnlockAccounts(BulkUnlockRequest request);
+
     Page<UserDetailResponse> getAllUsers(String search, String role, String status, Pageable pageable);
+
     UserDetailResponse getUserDetail(Long userId);
 }

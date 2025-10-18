@@ -6,12 +6,12 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import org.springframework.data.jpa.repository.Lock;
 
 @Repository
 public interface AccountRepository extends JpaRepository<Account, Long> {
@@ -28,12 +28,12 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     long countByRolesRoleTypeAndStatus(@Param("roleType") Role roleType, @Param("isLocked") boolean isLocked);
 
     @Query("SELECT DISTINCT a FROM Account a LEFT JOIN FETCH a.user u LEFT JOIN FETCH a.roles r " +
-           "WHERE (:search IS NULL OR LOWER(a.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "AND (:role IS NULL OR r.roleType = :role) " +
-           "AND (:isLocked IS NULL OR a.isLocked = :isLocked)")
-    Page<Account> findAllWithFilters(@Param("search") String search, 
-                                      @Param("role") Role role, 
-                                      @Param("isLocked") Boolean isLocked, 
-                                      Pageable pageable);
+            "WHERE (:search IS NULL OR LOWER(a.email) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND (:role IS NULL OR r.roleType = :role) " +
+            "AND (:isLocked IS NULL OR a.isLocked = :isLocked)")
+    Page<Account> findAllWithFilters(@Param("search") String search,
+                                     @Param("role") Role role,
+                                     @Param("isLocked") Boolean isLocked,
+                                     Pageable pageable);
 }

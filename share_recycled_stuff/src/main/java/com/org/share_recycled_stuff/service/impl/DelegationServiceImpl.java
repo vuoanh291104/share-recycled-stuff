@@ -9,11 +9,11 @@ import com.org.share_recycled_stuff.entity.DelegationRequests;
 import com.org.share_recycled_stuff.entity.enums.DelegationRequestsStatus;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
+import com.org.share_recycled_stuff.mapper.DelegationMapper;
 import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.ApprovedDelegationRequestsRepository;
 import com.org.share_recycled_stuff.repository.DelegationImagesRepository;
 import com.org.share_recycled_stuff.repository.DelegationRequestsRepository;
-import com.org.share_recycled_stuff.mapper.DelegationMapper;
 import com.org.share_recycled_stuff.service.DelegationService;
 import com.org.share_recycled_stuff.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +38,7 @@ public class DelegationServiceImpl implements DelegationService {
     private final ApprovedDelegationRequestsRepository approvedDelegationRequestsRepository;
     private final NotificationService notificationService;
     private final DelegationMapper delegationMapper;
+
     @Override
     public DelegationResponse createDelegationRequest(DelegationRequest request, Long customerId) {
         Account customer = accountRepository.findById(customerId)
@@ -79,11 +80,12 @@ public class DelegationServiceImpl implements DelegationService {
 
         return delegationMapper.toResponse(savedWithImages);
     }
+
     @Transactional
     @Override
     public void approve(Long delegationId, Long proxySellerId, String note) {
         DelegationRequests request = delegationRequestsRepository.findById(delegationId)
-                .orElseThrow(() -> new AppException(ErrorCode. INVALID_REQUEST));
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST));
 
         if (request.getStatus() != DelegationRequestsStatus.PENDING) {
             throw new AppException(ErrorCode.INVALID_REQUEST, "Yêu cầu không ở trạng thái chờ duyệt");
@@ -105,11 +107,11 @@ public class DelegationServiceImpl implements DelegationService {
         approvedDelegationRequestsRepository.save(approved);
 
         String approvalMessage = note != null && !note.trim().isEmpty()
-                ? String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã được chấp nhận. Ghi chú: %s", 
-                    request.getProductDescription(), note)
-                : String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã được chấp nhận.", 
-                    request.getProductDescription());
-        
+                ? String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã được chấp nhận. Ghi chú: %s",
+                request.getProductDescription(), note)
+                : String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã được chấp nhận.",
+                request.getProductDescription());
+
         notificationService.createNotification(
                 request.getCustomer().getId(),
                 "Yêu cầu ký gửi được chấp nhận",
@@ -127,7 +129,7 @@ public class DelegationServiceImpl implements DelegationService {
         DelegationRequests request = delegationRequestsRepository.findById(requestId)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST));
         if (!request.getProxySeller().getId().equals(proxySellerId)) {
-            throw new AppException(ErrorCode. USER_NOT_FOUND);
+            throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
         if (request.getStatus() != DelegationRequestsStatus.PENDING) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
@@ -137,11 +139,11 @@ public class DelegationServiceImpl implements DelegationService {
         delegationRequestsRepository.save(request);
 
         String rejectionMessage = reason != null && !reason.trim().isEmpty()
-                ? String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã bị từ chối. Lý do: %s", 
-                    request.getProductDescription(), reason)
-                : String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã bị từ chối.", 
-                    request.getProductDescription());
-        
+                ? String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã bị từ chối. Lý do: %s",
+                request.getProductDescription(), reason)
+                : String.format("Yêu cầu ký gửi sản phẩm \"%s\" của bạn đã bị từ chối.",
+                request.getProductDescription());
+
         notificationService.createNotification(
                 request.getCustomer().getId(),
                 "Yêu cầu ký gửi bị từ chối",
@@ -152,6 +154,7 @@ public class DelegationServiceImpl implements DelegationService {
                 requestId
         );
     }
+
     @Transactional
     @Override
     public Page<DelegationResponse> getDelegationRequests(Long accountId, String role, Pageable pageable) {
@@ -167,6 +170,7 @@ public class DelegationServiceImpl implements DelegationService {
 
         return page.map(delegationMapper::toResponse);
     }
+
     @Transactional
     @Override
     public DelegationResponse getDelegationRequestDetail(Long id, Long accountId, String role) {

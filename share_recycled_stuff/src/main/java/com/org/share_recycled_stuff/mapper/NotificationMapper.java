@@ -17,8 +17,8 @@ public interface NotificationMapper {
     @Mapping(target = "isRead", constant = "false")
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
-    Notifications toEntity(String title, String content, Integer notificationType, 
-                           Integer deliveryMethod, String relatedEntityType, 
+    Notifications toEntity(String title, String content, Integer notificationType,
+                           Integer deliveryMethod, String relatedEntityType,
                            Long relatedEntityId, com.org.share_recycled_stuff.entity.Account account);
 
     @AfterMapping

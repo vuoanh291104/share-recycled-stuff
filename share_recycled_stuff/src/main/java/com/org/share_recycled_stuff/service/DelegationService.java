@@ -8,9 +8,11 @@ import org.springframework.data.domain.Pageable;
 public interface DelegationService {
     DelegationResponse createDelegationRequest(DelegationRequest request, Long customerId);
 
-    void approve(Long requestId, Long proxySellerId,String note);
+    void approve(Long requestId, Long proxySellerId, String note);
+
     void reject(Long requestId, Long proxySellerId, String reason);
 
     Page<DelegationResponse> getDelegationRequests(Long accountId, String role, Pageable pageable);
+
     DelegationResponse getDelegationRequestDetail(Long id, Long accountId, String role);
 }

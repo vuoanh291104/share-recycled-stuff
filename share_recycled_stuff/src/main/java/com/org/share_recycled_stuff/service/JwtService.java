@@ -3,8 +3,8 @@ package com.org.share_recycled_stuff.service;
 import com.org.share_recycled_stuff.config.CustomUserDetail;
 import com.org.share_recycled_stuff.security.jwt.JwtToken;
 
-import java.util.List;
 import java.time.Duration;
+import java.util.List;
 
 public interface JwtService {
     JwtToken generateTokens(CustomUserDetail userDetails);

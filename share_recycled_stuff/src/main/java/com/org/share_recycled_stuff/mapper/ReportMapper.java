@@ -100,7 +100,7 @@ public interface ReportMapper {
                 .id(post.getId())
                 .title(post.getTitle())
                 .content(post.getContent())
-                .authorName(post.getAccount() != null && post.getAccount().getUser() != null 
+                .authorName(post.getAccount() != null && post.getAccount().getUser() != null
                         ? post.getAccount().getUser().getFullName() : null)
                 .status(post.getStatus() != null ? post.getStatus().toString() : null)
                 .createdAt(post.getCreatedAt())

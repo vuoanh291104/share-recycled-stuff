@@ -50,14 +50,14 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public NotificationResponse createNotification(Long accountId, String title, String content,
-                                                    Integer notificationType, Integer deliveryMethod,
-                                                    String relatedEntityType, Long relatedEntityId) {
+                                                   Integer notificationType, Integer deliveryMethod,
+                                                   String relatedEntityType, Long relatedEntityId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
 
         Notifications notification = notificationMapper.toEntity(title, content, notificationType,
-                                                                 deliveryMethod, relatedEntityType,
-                                                                 relatedEntityId, account);
+                deliveryMethod, relatedEntityType,
+                relatedEntityId, account);
 
         notification = notificationRepository.save(notification);
         log.info("Created notification ID: {} for account ID: {}", notification.getId(), accountId);
@@ -122,7 +122,7 @@ public class NotificationServiceImpl implements NotificationService {
     public int markAllAsRead(Long accountId) {
         List<Notifications> unreadNotifications = notificationRepository
                 .findByAccountIdAndIsReadFalseOrderByCreatedAtDesc(accountId);
-        
+
         if (unreadNotifications.isEmpty()) {
             return 0;
         }
@@ -130,7 +130,7 @@ public class NotificationServiceImpl implements NotificationService {
         List<Long> ids = unreadNotifications.stream()
                 .map(Notifications::getId)
                 .collect(Collectors.toList());
-        
+
         int count = notificationRepository.markAsRead(ids, accountId);
         log.info("Marked all {} notifications as read for account ID: {}", count, accountId);
         return count;

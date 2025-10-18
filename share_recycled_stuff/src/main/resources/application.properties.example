@@ -1,7 +1,7 @@
 spring.application.name=share_recycled_stuff
 server.port=8080
 
-spring.datasource.url=jdbc:mysql://localhost:3306/share_recycled_stuff_db
+spring.datasource.url=jdbc:mysql://localhost:33306/share_recycled_stuff_db
 spring.datasource.username=root
 spring.datasource.password=password
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
@@ -35,6 +35,24 @@ app.auth.login.lock-duration-minutes=30
 app.jwt.secret=myVeryLongAndSecureSecretKeyThatIsAtLeast64CharactersLongForHS512Algorithm
 app.jwt.access-token-expiration=3600000
 app.jwt.refresh-token-expiration=604800000
+
+springdoc.api-docs.path=/v3/api-docs
+springdoc.api-docs.enabled=true
+springdoc.swagger-ui.path=/swagger-ui.html
+springdoc.swagger-ui.enabled=true
+springdoc.show-actuator=false
+springdoc.packages-to-scan=com.org.share_recycled_stuff.controller
+springdoc.default-produces-media-type=application/json
+springdoc.default-consumes-media-type=application/json
+
+scalar.enabled=true
+scalar.url=/v3/api-docs
+scalar.path=/scalar
+scalar.showSidebar=true
+scalar.hideModels=false
+scalar.darkMode=false
+scalar.theme=purple
+scalar.layout=modern
 
 vnpay.pay-url=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
 vnpay.return-url=http://localhost:8080/api/payment/transaction
