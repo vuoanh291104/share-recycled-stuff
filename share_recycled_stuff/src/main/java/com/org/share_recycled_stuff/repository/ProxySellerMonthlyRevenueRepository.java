@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 public interface ProxySellerMonthlyRevenueRepository extends JpaRepository<ProxySellerMonthlyRevenue, Long> {
     @Query("""
         SELECT r FROM ProxySellerMonthlyRevenue r
-        LEFT JOIN r.proxySeller s
+
         WHERE (:month IS NULL OR r.month = :month)
           AND (:year IS NULL OR r.year = :year)
         ORDER BY r.year DESC, r.month DESC
@@ -24,4 +24,10 @@ public interface ProxySellerMonthlyRevenueRepository extends JpaRepository<Proxy
         ORDER BY r.year DESC, r.month DESC
     """)
     java.util.List<Object[]> findLatestMonthAndYear();
+
+    @Query("SELECT MAX(r.month) FROM ProxySellerMonthlyRevenue r WHERE r.year = :year")
+    Integer findLatestMonthByYear(Integer year);
+
+    @Query("SELECT MAX(r.year) FROM ProxySellerMonthlyRevenue r WHERE r.month = :month")
+    Integer findLatestYearByMonth(Integer month);
 }
