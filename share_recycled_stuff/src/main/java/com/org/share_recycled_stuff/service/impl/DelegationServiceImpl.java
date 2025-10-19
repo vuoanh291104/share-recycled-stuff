@@ -63,7 +63,7 @@ public class DelegationServiceImpl implements DelegationService {
         Set<String> imageUrls = request.getImageUrls() != null ? request.getImageUrls() : Collections.emptySet();
 
         if (!imageUrls.isEmpty()) {
-            List<DelegationImages> imagesToSave = new ArrayList<>();
+            java.util.List<DelegationImages> imagesToSave = new java.util.ArrayList<>();
             int order = 1;
             for (String url : imageUrls) {
                 DelegationImages img = new DelegationImages();
@@ -75,13 +75,23 @@ public class DelegationServiceImpl implements DelegationService {
             delegationImagesRepository.saveAll(imagesToSave);
         }
 
-        DelegationRequests savedWithImages = delegationRequestsRepository.findById(saved.getId())
-                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST));
-
-        return delegationMapper.toResponse(savedWithImages);
+        return DelegationResponse.builder()
+                .id(saved.getId())
+                .customerId(saved.getCustomer().getId())
+                .customerName(saved.getCustomer().getUser().getFullName())
+                .proxySellerId(saved.getProxySeller().getId())
+                .proxySellerName(saved.getProxySeller().getUser().getFullName())
+                .productDescription(saved.getProductDescription())
+                .expectPrice(saved.getExpectPrice())
+                .status(saved.getStatus().name())
+                .bankAccountNumber(saved.getBankAccountNumber())
+                .bankName(saved.getBankName())
+                .accountHolderName(saved.getAccountHolderName())
+                .imageUrls(imageUrls)
+                .createdAt(saved.getCreatedAt())
+                .updatedAt(saved.getUpdatedAt())
+                .build();
     }
-
-    @Transactional
     @Override
     public void approve(Long delegationId, Long proxySellerId, String note) {
         DelegationRequests request = delegationRequestsRepository.findById(delegationId)
@@ -123,7 +133,6 @@ public class DelegationServiceImpl implements DelegationService {
         );
     }
 
-    @Transactional
     @Override
     public void reject(Long requestId, Long proxySellerId, String reason) {
         DelegationRequests request = delegationRequestsRepository.findById(requestId)
@@ -154,27 +163,48 @@ public class DelegationServiceImpl implements DelegationService {
                 requestId
         );
     }
-
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public Page<DelegationResponse> getDelegationRequests(Long accountId, String role, Pageable pageable) {
         Page<DelegationRequests> page;
 
         if ("PROXY_SELLER".equalsIgnoreCase(role)) {
-            page = delegationRequestsRepository.findByProxySellerId(accountId, pageable);
+            page = delegationRequestsRepository.findByProxySellerIdWithImages(accountId, pageable);
         } else if ("CUSTOMER".equalsIgnoreCase(role)) {
-            page = delegationRequestsRepository.findByCustomerId(accountId, pageable);
+            page = delegationRequestsRepository.findByCustomerIdWithImages(accountId, pageable);
         } else {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
 
-        return page.map(delegationMapper::toResponse);
-    }
+        return page.map(req -> {
+            Set<String> imageUrls = req.getImages() != null
+                    ? req.getImages().stream()
+                    .map(DelegationImages::getImageUrl)
+                    .collect(Collectors.toSet())
+                    : Collections.emptySet();
 
-    @Transactional
+            return DelegationResponse.builder()
+                    .id(req.getId())
+                    .customerId(req.getCustomer().getId())
+                    .customerName(req.getCustomer().getUser().getFullName())
+                    .proxySellerId(req.getProxySeller().getId())
+                    .proxySellerName(req.getProxySeller().getUser().getFullName())
+                    .productDescription(req.getProductDescription())
+                    .expectPrice(req.getExpectPrice())
+                    .status(req.getStatus().name())
+                    .bankAccountNumber(req.getBankAccountNumber())
+                    .bankName(req.getBankName())
+                    .accountHolderName(req.getAccountHolderName())
+                    .imageUrls(imageUrls)
+                    .createdAt(req.getCreatedAt())
+                    .updatedAt(req.getUpdatedAt())
+                    .build();
+        });
+    }
+    @Transactional(readOnly = true)
     @Override
     public DelegationResponse getDelegationRequestDetail(Long id, Long accountId, String role) {
-        DelegationRequests request = delegationRequestsRepository.findById(id)
+        DelegationRequests request = delegationRequestsRepository.findByIdWithImages(id)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST, "Không tìm thấy yêu cầu ủy thác"));
 
         if ("CUSTOMER".equalsIgnoreCase(role) && !request.getCustomer().getId().equals(accountId)) {
@@ -184,6 +214,25 @@ public class DelegationServiceImpl implements DelegationService {
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
 
-        return delegationMapper.toResponse(request);
+        Set<String> imageUrls = request.getImages() != null
+                ? request.getImages().stream().map(DelegationImages::getImageUrl).collect(Collectors.toSet())
+                : Collections.emptySet();
+
+        return DelegationResponse.builder()
+                .id(request.getId())
+                .customerId(request.getCustomer().getId())
+                .customerName(request.getCustomer().getUser().getFullName())
+                .proxySellerId(request.getProxySeller().getId())
+                .proxySellerName(request.getProxySeller().getUser().getFullName())
+                .productDescription(request.getProductDescription())
+                .expectPrice(request.getExpectPrice())
+                .status(request.getStatus().name())
+                .bankAccountNumber(request.getBankAccountNumber())
+                .bankName(request.getBankName())
+                .accountHolderName(request.getAccountHolderName())
+                .imageUrls(imageUrls)
+                .createdAt(request.getCreatedAt())
+                .updatedAt(request.getUpdatedAt())
+                .build();
     }
 }

@@ -22,6 +22,8 @@ public class DelegationResponse {
 
     @Schema(description = "Proxy seller ID", example = "5")
     private Long proxySellerId;
+    private String customerName;
+    private String proxySellerName;
 
     @Schema(description = "Product description", example = "Bàn học gỗ, 90% mới")
     private String productDescription;
