@@ -44,10 +44,13 @@ public class User {
     private String ward;
 
     @Column(length = 100)
-    private String district;
-
-    @Column(length = 100)
     private String city;
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
 
     @Column(name = "id_card", length = 20)
     private String idCard;

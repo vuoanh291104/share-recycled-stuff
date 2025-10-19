@@ -33,13 +33,13 @@ public interface CommentsRepository extends JpaRepository<Comments, Long> {
 
     // Lấy tất cả comments của một post (chỉ parent comments, không bao gồm replies)
     @Query("""
-            SELECT c FROM Comments c
-            LEFT JOIN FETCH c.account a
-            LEFT JOIN FETCH a.user u
-            WHERE c.post.id = :postId
-            AND c.parentComment IS NULL
-            ORDER BY c.createdAt ASC
-           """)
+             SELECT c FROM Comments c
+             LEFT JOIN FETCH c.account a
+             LEFT JOIN FETCH a.user u
+             WHERE c.post.id = :postId
+             AND c.parentComment IS NULL
+             ORDER BY c.createdAt ASC
+            """)
     List<Comments> findByPostIdOrderByCreatedAtAsc(@Param("postId") Long postId);
 
     // Lấy tất cả comments của một post (bao gồm cả parent và child comments)
@@ -51,4 +51,17 @@ public interface CommentsRepository extends JpaRepository<Comments, Long> {
             ORDER BY c.createdAt ASC
             """)
     List<Comments> findAllByPostIdOrderByCreatedAtAsc(@Param("postId") Long postId);
+
+    // Lấy tất cả replies của một comment với pagination
+    @Query("""
+            SELECT c FROM Comments c
+            LEFT JOIN FETCH c.account a
+            LEFT JOIN FETCH a.user u
+            WHERE c.parentComment.id = :parentCommentId
+            ORDER BY c.createdAt ASC
+            """)
+    org.springframework.data.domain.Page<Comments> findByParentCommentIdOrderByCreatedAtAsc(
+            @Param("parentCommentId") Long parentCommentId,
+            org.springframework.data.domain.Pageable pageable
+    );
 }

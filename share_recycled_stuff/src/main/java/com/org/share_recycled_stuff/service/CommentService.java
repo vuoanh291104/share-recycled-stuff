@@ -4,6 +4,8 @@ import com.org.share_recycled_stuff.dto.request.CommentRequest;
 import com.org.share_recycled_stuff.dto.request.EditCommentRequest;
 import com.org.share_recycled_stuff.dto.request.ReplyCommentRequest;
 import com.org.share_recycled_stuff.dto.response.CommentResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface CommentService {
 
@@ -12,5 +14,8 @@ public interface CommentService {
     CommentResponse replyToComment(ReplyCommentRequest request, Long accountId);
 
     CommentResponse editComment(Long id, EditCommentRequest request, Long userId);
+
     void deleteComment(Long id, Long userId);
+
+    Page<CommentResponse> getCommentReplies(Long parentCommentId, Pageable pageable);
 }

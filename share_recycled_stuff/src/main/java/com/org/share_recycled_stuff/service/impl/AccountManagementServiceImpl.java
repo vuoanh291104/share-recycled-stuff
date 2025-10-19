@@ -36,15 +36,14 @@ import java.util.List;
 @Slf4j
 public class AccountManagementServiceImpl implements AccountManagementService {
 
+    private static final int MAX_LOCK_DURATION_MINUTES = 60 * 24 * 30; // 30 days
+    private static final int MIN_REASON_LENGTH = 5;
+    private static final int MAX_REASON_LENGTH = 255;
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final SecurityUtils securityUtils;
     private final NotificationService notificationService;
-    
-    private static final int MAX_LOCK_DURATION_MINUTES = 60 * 24 * 30; // 30 days
-    private static final int MIN_REASON_LENGTH = 5;
-    private static final int MAX_REASON_LENGTH = 255;
 
     @Override
     @Transactional(readOnly = true)
@@ -74,7 +73,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
         }
 
         Page<Account> accounts = accountRepository.findAllWithFilters(search, roleEnum, isLocked, pageable);
-        
+
         return accounts.map(userMapper::toUserDetailResponse);
     }
 
@@ -139,11 +138,11 @@ public class AccountManagementServiceImpl implements AccountManagementService {
         for (Long accountId : request.getAccountIds()) {
             try {
                 Account account = getAccountOrThrow(accountId);
-                
+
                 if (currentAdmin.getId().equals(account.getId())) {
                     throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot lock your own account");
                 }
-                
+
                 if (isAdminAccount(account)) {
                     throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot lock administrator accounts");
                 }
@@ -156,7 +155,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
                 account.setLockedReason(normalizedReason);
                 account.setLockedAt(now);
                 account.setLockedUntil(sanitizedDuration != null ? now.plusMinutes(sanitizedDuration) : null);
-                
+
                 accountsToUpdate.add(account);
                 successes.add(buildResponse(account, "Account locked successfully"));
 
@@ -179,11 +178,11 @@ public class AccountManagementServiceImpl implements AccountManagementService {
 
         if (!accountsToUpdate.isEmpty()) {
             accountRepository.saveAll(accountsToUpdate);
-            
+
             String lockMessage = sanitizedDuration != null
                     ? String.format("Tài khoản của bạn đã bị khóa trong %d phút. Lý do: %s", sanitizedDuration, normalizedReason)
                     : String.format("Tài khoản của bạn đã bị khóa vĩnh viễn. Lý do: %s", normalizedReason);
-            
+
             for (Account account : accountsToUpdate) {
                 notificationService.createNotification(
                         account.getId(),
@@ -216,11 +215,11 @@ public class AccountManagementServiceImpl implements AccountManagementService {
         for (Long accountId : request.getAccountIds()) {
             try {
                 Account account = getAccountOrThrow(accountId);
-                
+
                 if (currentAdmin.getId().equals(account.getId())) {
                     throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot unlock your own account");
                 }
-                
+
                 if (!account.isLocked()) {
                     throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Account is not locked");
                 }
@@ -230,7 +229,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
                 account.setLockedAt(null);
                 account.setLockedUntil(null);
                 account.setLoginAttempts(0);
-                
+
                 accountsToUpdate.add(account);
                 successes.add(buildResponse(account, "Account unlocked successfully"));
 
@@ -253,7 +252,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
 
         if (!accountsToUpdate.isEmpty()) {
             accountRepository.saveAll(accountsToUpdate);
-            
+
             for (Account account : accountsToUpdate) {
                 notificationService.createNotification(
                         account.getId(),
@@ -275,11 +274,11 @@ public class AccountManagementServiceImpl implements AccountManagementService {
 
     private AccountLockResponse performLock(Account account, String reason, Integer durationMinutes) {
         Account currentAdmin = securityUtils.getCurrentAccount();
-        
+
         if (currentAdmin.getId().equals(account.getId())) {
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot lock your own account");
         }
-        
+
         if (isAdminAccount(account)) {
             log.warn("Attempted to lock admin account: {}", account.getEmail());
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot lock administrator accounts");
@@ -304,7 +303,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
         String lockMessage = sanitizedDuration != null
                 ? String.format("Tài khoản của bạn đã bị khóa trong %d phút. Lý do: %s", sanitizedDuration, normalizedReason)
                 : String.format("Tài khoản của bạn đã bị khóa vĩnh viễn. Lý do: %s", normalizedReason);
-        
+
         notificationService.createNotification(
                 account.getId(),
                 "Tài khoản bị khóa",
@@ -320,11 +319,11 @@ public class AccountManagementServiceImpl implements AccountManagementService {
 
     private AccountLockResponse performUnlock(Account account) {
         Account currentAdmin = securityUtils.getCurrentAccount();
-        
+
         if (currentAdmin.getId().equals(account.getId())) {
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot unlock your own account");
         }
-        
+
         if (!account.isLocked()) {
             log.warn("Account {} is not locked", account.getEmail());
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Account is not locked");

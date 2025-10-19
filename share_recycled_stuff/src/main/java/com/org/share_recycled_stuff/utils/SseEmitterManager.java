@@ -27,7 +27,7 @@ public class SseEmitterManager {
         if (userEmitters != null) {
             userEmitters.remove(emitter);
             log.info("Removed SSE emitter for account ID: {}", accountId);
-            
+
             if (userEmitters.isEmpty()) {
                 emitters.remove(accountId);
             }
@@ -36,7 +36,7 @@ public class SseEmitterManager {
 
     public void sendToUser(Long accountId, NotificationResponse notification) {
         Set<SseEmitter> userEmitters = emitters.get(accountId);
-        
+
         if (userEmitters == null || userEmitters.isEmpty()) {
             log.debug("No active SSE connections for account ID: {}", accountId);
             return;
