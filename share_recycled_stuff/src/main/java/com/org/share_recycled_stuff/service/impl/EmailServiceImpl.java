@@ -19,11 +19,11 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendVerificationEmail(String to, String token) {
         String subject = "Xác thực tài khoản của bạn";
-        String verificationUrl = "http://localhost:8080/api/auth/verify?token=" + token;
+        String verifyUrl = "http://localhost:3000/verify?token=" + token;
 
         String content = "<p>Chào bạn,</p>"
                 + "<p>Vui lòng click link dưới đây để xác thực tài khoản:</p>"
-                + "<a href=\"" + verificationUrl + "\">Xác thực ngay</a>"
+                + "<a href=\"" + verifyUrl + "\">Xác thực ngay</a>"
                 + "<p>Link sẽ hết hạn sau 15 phút.</p>";
         sendEmail(to, subject, content);
     }

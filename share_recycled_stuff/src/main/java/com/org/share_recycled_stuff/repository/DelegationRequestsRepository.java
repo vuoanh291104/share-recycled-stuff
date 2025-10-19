@@ -13,12 +13,27 @@ import java.util.Optional;
 
 @Repository
 public interface DelegationRequestsRepository extends JpaRepository<DelegationRequests, Long> {
-    @EntityGraph(attributePaths = {"customer", "proxySeller", "images"})
-    Page<DelegationRequests> findByCustomerId(Long customerId, Pageable pageable);
+    @Query("SELECT DISTINCT r FROM DelegationRequests r " +
+            "LEFT JOIN FETCH r.images " +
+            "LEFT JOIN FETCH r.customer c LEFT JOIN FETCH c.user " +
+            "LEFT JOIN FETCH r.proxySeller ps LEFT JOIN FETCH ps.user " +
+            "WHERE r.proxySeller.id = :accountId")
+    Page<DelegationRequests> findByProxySellerIdWithImages(@Param("accountId") Long accountId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"customer", "proxySeller", "images"})
-    Page<DelegationRequests> findByProxySellerId(Long proxySellerId, Pageable pageable);
+    @Query("SELECT DISTINCT r FROM DelegationRequests r " +
+            "LEFT JOIN FETCH r.images " +
+            "LEFT JOIN FETCH r.customer c LEFT JOIN FETCH c.user " +
+            "LEFT JOIN FETCH r.proxySeller ps LEFT JOIN FETCH ps.user " +
+            "WHERE r.customer.id = :accountId")
+    Page<DelegationRequests> findByCustomerIdWithImages(@Param("accountId") Long accountId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"customer", "proxySeller", "images"})
-    Optional<DelegationRequests> findById(Long id);
+    @Query("SELECT r FROM DelegationRequests r " +
+            "LEFT JOIN FETCH r.images " +
+            "LEFT JOIN FETCH r.customer c LEFT JOIN FETCH c.user " +
+            "LEFT JOIN FETCH r.proxySeller ps LEFT JOIN FETCH ps.user " +
+            "WHERE r.id = :id")
+    Optional<DelegationRequests> findByIdWithImages(@Param("id") Long id);
+
+    Page<DelegationRequests> findByProxySellerId(Long accountId, Pageable pageable);
+    Page<DelegationRequests> findByCustomerId(Long accountId, Pageable pageable);
 }

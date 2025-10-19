@@ -14,6 +14,8 @@ public class DelegationResponse {
     private Long id;
     private Long customerId;
     private Long proxySellerId;
+    private String customerName;
+    private String proxySellerName;
     private String productDescription;
     private BigDecimal expectPrice;
     private String bankAccountNumber;
