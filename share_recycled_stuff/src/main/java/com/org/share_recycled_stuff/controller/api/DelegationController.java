@@ -9,6 +9,10 @@ import com.org.share_recycled_stuff.dto.response.DelegationResponse;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
 import com.org.share_recycled_stuff.service.DelegationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.util.List;
 
+@Tag(name = "Delegation Requests", description = "Delegation request management for proxy sellers")
 @RestController
 @RequestMapping("/api/delegation-requests")
 @RequiredArgsConstructor
@@ -32,9 +37,27 @@ public class DelegationController {
 
     private final DelegationService delegationService;
 
+    @Operation(
+            summary = "Create delegation request",
+            description = "Customer creates a delegation request to ask proxy seller to sell their item"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "Delegation request created successfully. Returns ApiResponse wrapper with DelegationResponse in result field."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request data. Returns ApiResponse with error message."
+            )
+    })
     @PreAuthorize("hasAnyRole('CUSTOMER')")
     @PostMapping
     public ResponseEntity<ApiResponse<DelegationResponse>> createDelegationRequest(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Delegation request details including post ID and message",
+                    required = true
+            )
             @Valid @RequestBody DelegationRequest request,
             @AuthenticationPrincipal CustomUserDetail userDetail,
             HttpServletRequest httpRequest
@@ -50,9 +73,25 @@ public class DelegationController {
                         .build()
         );
     }
+
+    @Operation(
+            summary = "Approve delegation request",
+            description = "Proxy seller approves a delegation request from customer"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Request approved successfully"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Delegation request not found"
+            )
+    })
     @PreAuthorize("hasRole('PROXY_SELLER')")
     @PutMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<Void>> approveDelegationRequest(
+            @Parameter(description = "Delegation request ID", required = true, example = "1")
             @PathVariable Long id,
             @RequestBody(required = false) DelegationApproveRequest request,
             @AuthenticationPrincipal CustomUserDetail userDetail,
@@ -72,9 +111,25 @@ public class DelegationController {
                         .build()
         );
     }
+
+    @Operation(
+            summary = "Reject delegation request",
+            description = "Proxy seller rejects a delegation request with reason"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Request rejected successfully"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Delegation request not found"
+            )
+    })
     @PreAuthorize("hasRole('PROXY_SELLER')")
     @PutMapping("/{id}/reject")
     public ResponseEntity<ApiResponse<Void>> rejectDelegationRequest(
+            @Parameter(description = "Delegation request ID", required = true, example = "1")
             @PathVariable Long id,
             @RequestBody DelegationRejectRequest request,
             @AuthenticationPrincipal CustomUserDetail userDetail,
@@ -94,11 +149,29 @@ public class DelegationController {
                         .build()
         );
     }
+
+    @Operation(
+            summary = "Get all delegation requests for current user",
+            description = "Customer or Proxy Seller retrieves their own delegation requests with pagination and sorting"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved delegation requests. Returns ApiResponse<Page<DelegationResponse>>."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token required. Returns ApiResponse with error."
+            )
+    })
     @PreAuthorize("hasAnyRole('CUSTOMER', 'PROXY_SELLER')")
     @GetMapping
     public ResponseEntity<ApiResponse<Page<DelegationResponse>>> getDelegationRequests(
+            @Parameter(description = "Page number (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size", example = "10")
             @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Sort field and direction (field,direction)", example = "createdAt,desc")
             @RequestParam(defaultValue = "createdAt,desc") String sort,
             @AuthenticationPrincipal CustomUserDetail userDetail,
             HttpServletRequest httpRequest
@@ -122,9 +195,29 @@ public class DelegationController {
                         .build()
         );
     }
+
+    @Operation(
+            summary = "Get delegation request detail",
+            description = "Retrieve detailed information about a specific delegation request by ID"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved delegation request detail. Returns ApiResponse<DelegationResponse>."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Delegation request not found. Returns ApiResponse with error."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token required. Returns ApiResponse with error."
+            )
+    })
     @PreAuthorize("hasAnyRole('CUSTOMER', 'PROXY_SELLER')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<DelegationResponse>> getDelegationRequestDetail(
+            @Parameter(description = "Delegation request ID", required = true, example = "1")
             @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetail userDetail,
             HttpServletRequest httpRequest
@@ -145,6 +238,7 @@ public class DelegationController {
                         .build()
         );
     }
+
     private String extractRole(CustomUserDetail userDetail) {
         List<String> roles = userDetail.getAuthorities().stream()
                 .map(auth -> auth.getAuthority().replace("ROLE_", ""))

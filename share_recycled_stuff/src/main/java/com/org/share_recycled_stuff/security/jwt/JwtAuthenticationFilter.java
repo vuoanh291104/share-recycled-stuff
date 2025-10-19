@@ -30,7 +30,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
     private final ObjectMapper objectMapper;
 
-
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
@@ -44,17 +43,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     filterChain.doFilter(request, response);
                     return;
                 }
-                
+
                 // Check blacklist for valid tokens
                 if (tokenProvider.isBlacklisted(jwt)) {
                     log.warn("Blocked blacklisted token for request: {}", request.getRequestURI());
-                    sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, 
-                                    "Token has been revoked", 
-                                    "Please login again", 
-                                    request.getRequestURI());
+                    sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
+                            "Token has been revoked",
+                            "Please login again",
+                            request.getRequestURI());
                     return;
                 }
-                
+
                 // Only check access token type after validating it's not blacklisted
                 if (tokenProvider.isAccessToken(jwt)) {
                     String email = tokenProvider.getEmailFromToken(jwt);
@@ -80,18 +79,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private void sendErrorResponse(HttpServletResponse response, int status, 
+    private void sendErrorResponse(HttpServletResponse response, int status,
                                    String error, String message, String path) throws IOException {
         response.setStatus(status);
         response.setContentType("application/json;charset=UTF-8");
-        
+
         ApiResponse<Void> errorResponse = ApiResponse.<Void>builder()
                 .code(status)
                 .message(error + ": " + message)
                 .path(path)
                 .timestamp(java.time.Instant.now().toString())
                 .build();
-        
+
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }
 }

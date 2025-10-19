@@ -70,15 +70,18 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
+                        // API Documentation - completely public
                         .requestMatchers(
-                                "/api/auth/**",
-                                "/api/public/**",
                                 "/swagger-ui/**",
+                                "/swagger-ui.html",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
-                                "/webjars/**"
+                                "/webjars/**",
+                                "/scalar/**",
+                                "/scalar"
                         ).permitAll()
+                        // Public endpoints
+                        .requestMatchers("/api/auth/**", "/api/public/**").permitAll()
                         // Admin endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/profile/**").hasAnyRole("ADMIN", "CUSTOMER", "PROXY_SELLER")
@@ -86,11 +89,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/user/**").hasAnyRole("CUSTOMER", "ADMIN")
                         // Proxy Seller endpoints
                         .requestMatchers("/api/proxy-seller/**").hasAnyRole("PROXY_SELLER", "ADMIN")
+                        // Notification endpoints (all authenticated users)
+                        .requestMatchers("/api/notifications/**").authenticated()
                         // Any other request must be authenticated
                         .anyRequest().authenticated()
-                )
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                );
+
+        // Add JWT filter after security filter chain evaluates permitAll
+        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.authenticationProvider(authenticationProvider());
 
         return http.build();
     }

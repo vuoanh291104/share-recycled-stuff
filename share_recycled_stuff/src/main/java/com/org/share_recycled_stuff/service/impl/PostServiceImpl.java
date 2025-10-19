@@ -13,10 +13,14 @@ import com.org.share_recycled_stuff.mapper.CommentMapper;
 import com.org.share_recycled_stuff.mapper.PostImageMapper;
 import com.org.share_recycled_stuff.mapper.PostMapper;
 import com.org.share_recycled_stuff.repository.*;
+import com.org.share_recycled_stuff.service.GeoIpService;
+import com.org.share_recycled_stuff.service.NotificationService;
 import com.org.share_recycled_stuff.service.PostService;
+import com.org.share_recycled_stuff.utils.LocationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +43,8 @@ public class PostServiceImpl implements PostService {
     private final PostMapper postMapper;
     private final PostImageMapper postImageMapper;
     private final CommentMapper commentMapper;
+    private final NotificationService notificationService;
+    private final GeoIpService geoIpService;
 
     @Override
     @Transactional
@@ -248,6 +254,34 @@ public class PostServiceImpl implements PostService {
 
         log.info("Post {} reviewed successfully with status {} by admin {}", post.getId(), newStatus, adminId);
 
+        if (newStatus == PostStatus.ACTIVE && currentStatus != PostStatus.ACTIVE) {
+            String reviewComment = request.getAdminReviewComment() != null && !request.getAdminReviewComment().trim().isEmpty()
+                    ? request.getAdminReviewComment()
+                    : "Bài viết của bạn đã được phê duyệt";
+            notificationService.createNotification(
+                    post.getAccount().getId(),
+                    "Bài viết được duyệt",
+                    String.format("Bài viết \"%s\" đã được phê duyệt. %s", post.getTitle(), reviewComment),
+                    3,
+                    1,
+                    "Post",
+                    post.getId()
+            );
+        } else if (newStatus == PostStatus.EDIT) {
+            String reviewComment = request.getAdminReviewComment() != null && !request.getAdminReviewComment().trim().isEmpty()
+                    ? request.getAdminReviewComment()
+                    : "Bài viết cần chỉnh sửa";
+            notificationService.createNotification(
+                    post.getAccount().getId(),
+                    "Bài viết cần chỉnh sửa",
+                    String.format("Bài viết \"%s\" cần chỉnh sửa. Lý do: %s", post.getTitle(), reviewComment),
+                    4,
+                    1,
+                    "Post",
+                    post.getId()
+            );
+        }
+
         return getPostDetailForAdmin(post.getId());
     }
 
@@ -256,7 +290,7 @@ public class PostServiceImpl implements PostService {
         if (currentStatus == PostStatus.DELETED && newStatus == PostStatus.EDIT) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
         }
-        
+
         // Add more transition rules if needed
         log.debug("Validating status transition from {} to {}", currentStatus, newStatus);
     }
@@ -279,6 +313,19 @@ public class PostServiceImpl implements PostService {
 
         log.info("Post {} deleted successfully by admin {}", postId, adminId);
 
+        String deleteReason = reason != null && !reason.trim().isEmpty()
+                ? reason
+                : "Vi phạm quy định của hệ thống";
+        notificationService.createNotification(
+                post.getAccount().getId(),
+                "Bài viết bị xóa",
+                String.format("Bài viết \"%s\" đã bị xóa bởi quản trị viên. Lý do: %s", post.getTitle(), deleteReason),
+                5,
+                3,
+                "Post",
+                post.getId()
+        );
+
         return postMapper.toAdminPostDetailResponse(post);
     }
 
@@ -290,32 +337,37 @@ public class PostServiceImpl implements PostService {
         List<Long> successfulPostIds = new ArrayList<>();
         List<BulkDeletePostResponse.PostOperationError> errors = new ArrayList<>();
         Map<Long, String> postTitles = new HashMap<>();
+        List<Post> postsToUpdate = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
 
         for (Long postId : request.getPostIds()) {
             try {
                 Post post = postRepository.findById(postId)
                         .orElseThrow(() -> new AppException(ErrorCode.POST_NOT_FOUND));
 
-                // Store post title for UX
                 postTitles.put(postId, post.getTitle());
 
                 post.setStatus(PostStatus.DELETED);
-                post.setDeletedAt(LocalDateTime.now());
+                post.setDeletedAt(now);
 
                 if (request.getReason() != null && !request.getReason().trim().isEmpty()) {
                     post.setAdminReviewComment(request.getReason());
                 }
 
-                postRepository.save(post);
+                postsToUpdate.add(post);
                 successfulPostIds.add(postId);
 
             } catch (Exception e) {
-                log.error("Error deleting post {}: {}", postId, e.getMessage());
+                log.error("Error preparing post {} for deletion: {}", postId, e.getMessage());
                 errors.add(BulkDeletePostResponse.PostOperationError.builder()
                         .postId(postId)
                         .errorMessage(e.getMessage())
                         .build());
             }
+        }
+
+        if (!postsToUpdate.isEmpty()) {
+            postRepository.saveAll(postsToUpdate);
         }
 
         log.info("Bulk delete completed - success: {}, failed: {}", successfulPostIds.size(), errors.size());
@@ -385,12 +437,69 @@ public class PostServiceImpl implements PostService {
         if (startDate != null || endDate != null) {
             Long filteredCount = postRepository.countPostsInRange(filterStartDateTime, filterEndDateTime);
             builder.postsInDateRange(filteredCount)
-                   .filterStartDate(startDate)
-                   .filterEndDate(endDate);
+                    .filterStartDate(startDate)
+                    .filterEndDate(endDate);
             log.info("Posts in date range: {}", filteredCount);
         }
 
         return builder.build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PostDetailResponse> getMainPageFeed(String clientIp, Pageable pageable) {
+        log.info("Fetching main page feed for client IP: {}", clientIp);
+
+        // Fetch all approved posts
+        Page<Post> posts = postRepository.findApprovedPostsWithLocation(PostStatus.ACTIVE, pageable);
+
+        // Get client location from IP
+        GeoLocation clientLocation = geoIpService.getLocationFromIp(clientIp);
+
+        if (clientLocation == null ||
+                !LocationUtils.isValidCoordinates(clientLocation.getLatitude(), clientLocation.getLongitude())) {
+            log.debug("Client location not available or invalid, returning posts sorted by createdAt");
+            return posts.map(postMapper::toPostDetailResponse);
+        }
+
+        log.debug("Client location: lat={}, lon={}",
+                clientLocation.getLatitude(), clientLocation.getLongitude());
+
+        // Convert posts to responses and calculate distances
+        List<PostDetailResponse> postResponses = posts.getContent().stream()
+                .map(post -> {
+                    PostDetailResponse response = postMapper.toPostDetailResponse(post);
+
+                    // Calculate distance if post creator has location
+                    if (post.getAccount() != null
+                            && post.getAccount().getUser() != null) {
+                        User postUser = post.getAccount().getUser();
+
+                        if (LocationUtils.isValidCoordinates(postUser.getLatitude(), postUser.getLongitude())) {
+                            double distance = LocationUtils.calculateDistance(
+                                    clientLocation.getLatitude(),
+                                    clientLocation.getLongitude(),
+                                    postUser.getLatitude(),
+                                    postUser.getLongitude()
+                            );
+                            response.setDistance(distance);
+                        }
+                    }
+
+                    return response;
+                })
+                .sorted((p1, p2) -> {
+                    // Sort by distance (nulls last), then by createdAt
+                    if (p1.getDistance() == null && p2.getDistance() == null) {
+                        return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                    }
+                    if (p1.getDistance() == null) return 1;
+                    if (p2.getDistance() == null) return -1;
+                    return Double.compare(p1.getDistance(), p2.getDistance());
+                })
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(postResponses, pageable, posts.getTotalElements());
     }
 
 }

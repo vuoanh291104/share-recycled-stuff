@@ -17,15 +17,15 @@ public class RedisConfig {
     public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory connectionFactory) {
         StringRedisTemplate template = new StringRedisTemplate();
         template.setConnectionFactory(connectionFactory);
-        
+
         // Use String serializer for both key and value
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
         template.setHashValueSerializer(new StringRedisSerializer());
-        
+
         template.afterPropertiesSet();
-        
+
         log.info("StringRedisTemplate configured successfully");
         return template;
     }
