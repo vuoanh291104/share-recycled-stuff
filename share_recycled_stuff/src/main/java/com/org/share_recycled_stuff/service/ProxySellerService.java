@@ -6,6 +6,8 @@ import com.org.share_recycled_stuff.entity.enums.RequestStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
 public interface ProxySellerService {
     UpgradeRequestResponse createRequest(UpgradeRequestDTO upgradeRequestDTO, String email);
 
@@ -14,6 +16,8 @@ public interface ProxySellerService {
     Page<UpgradeRequestResponse> getRequestsByStatus(RequestStatus status, Pageable pageable);
 
     Page<UpgradeRequestResponse> getRequestName(String fullName, Pageable pageable);
+
+    List<UpgradeRequestResponse> getMyRequests(String email);
 
     void approveRequest(Long requestId);
 

@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface ProxySellerRequestRepository extends JpaRepository<ProxySellerRequests, Long> {
     @Query("""
             select new com.org.share_recycled_stuff.dto.response.UpgradeRequestResponse(
@@ -38,4 +40,14 @@ public interface ProxySellerRequestRepository extends JpaRepository<ProxySellerR
             where lower(u.fullName) like lower(concat('%', :fullName, '%'))
             """)
     Page<UpgradeRequestResponse> findRequestsByFullName(@Param("fullName") String fullName, Pageable pageable);
+    @Query("""
+            select new com.org.share_recycled_stuff.dto.response.UpgradeRequestResponse(
+                p.id, u.fullName, a.email, p.idCard, p.idCardFrontImage, p.idCardBackImage, p.addressDetail, p.status, p.createdAt)
+            from ProxySellerRequests p
+            left join p.account a
+            left join a.user u
+            where a.id = :accountId
+            order by p.createdAt desc
+            """)
+    List<UpgradeRequestResponse> findMyRequestsByAccountId(@Param("accountId") Long accountId);
 }
