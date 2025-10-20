@@ -27,6 +27,12 @@ public class UpgradeRequestResponse {
     @Schema(description = "National ID card number", example = "001234567890")
     private String idCard;
 
+    @Schema(description = "National ID card front image URL", example = "https://example.com/images/front.png")
+    private String idCardFrontImage;
+
+    @Schema(description = "National ID card back image URL", example = "https://example.com/images/back.png")
+    private String idCardBackImage;
+
     @Schema(description = "Detailed address", example = "123 Đường ABC, Quận 1, TP.HCM")
     private String addressDetail;
 

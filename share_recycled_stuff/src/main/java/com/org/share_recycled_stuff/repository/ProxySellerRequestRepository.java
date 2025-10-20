@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 public interface ProxySellerRequestRepository extends JpaRepository<ProxySellerRequests, Long> {
     @Query("""
             select new com.org.share_recycled_stuff.dto.response.UpgradeRequestResponse(
-                p.id, u.fullName, a.email, p.idCard, p.addressDetail, p.status, p.createdAt)
+                p.id, u.fullName, a.email, p.idCard,p.idCardFrontImage, p.idCardBackImage, p.addressDetail, p.status, p.createdAt)
             from ProxySellerRequests p
             left join p.account a
             left join a.user u
@@ -21,7 +21,7 @@ public interface ProxySellerRequestRepository extends JpaRepository<ProxySellerR
 
     @Query("""
             select new com.org.share_recycled_stuff.dto.response.UpgradeRequestResponse(
-                p.id, u.fullName, a.email, p.idCard, p.addressDetail, p.status, p.createdAt)
+                p.id, u.fullName, a.email, p.idCard, p.idCardFrontImage, p.idCardBackImage,p.addressDetail, p.status, p.createdAt)
             from ProxySellerRequests p 
             left join p.account a
             left join a.user u
@@ -31,7 +31,7 @@ public interface ProxySellerRequestRepository extends JpaRepository<ProxySellerR
 
     @Query("""
             select new com.org.share_recycled_stuff.dto.response.UpgradeRequestResponse(
-                p.id, u.fullName, a.email, p.idCard, p.addressDetail, p.status, p.createdAt)
+                p.id, u.fullName, a.email, p.idCard, p.idCardFrontImage, p.idCardBackImage,p.addressDetail, p.status, p.createdAt)
             from ProxySellerRequests p 
             left join p.account a
             left join a.user u
