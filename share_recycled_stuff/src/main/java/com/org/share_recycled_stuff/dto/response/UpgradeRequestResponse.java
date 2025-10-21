@@ -39,6 +39,12 @@ public class UpgradeRequestResponse {
     @Schema(description = "Request status (PENDING/APPROVED/REJECTED)", example = "PENDING")
     private RequestStatus status;
 
+    @Schema(description = "Lý do từ chối (nếu trạng thái là REJECTED)", example = "Thông tin CCCD không rõ ràng")
+    private String rejectionReason;
+
+    @Schema(description = "Ngày duyệt/xử lý yêu cầu (nếu đã xử lý)", example = "2024-01-02T11:00:00")
+    private LocalDateTime processedAt;
+
     @Schema(description = "Request creation timestamp", example = "2024-01-01T10:00:00")
     private LocalDateTime createdAt;
 }
