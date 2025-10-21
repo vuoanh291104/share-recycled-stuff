@@ -38,7 +38,6 @@ public class DelegationServiceImpl implements DelegationService {
     private final DelegationImagesRepository delegationImagesRepository;
     private final ApprovedDelegationRequestsRepository approvedDelegationRequestsRepository;
     private final NotificationService notificationService;
-    private final DelegationMapper delegationMapper;
 
     @Override
     public DelegationResponse createDelegationRequest(DelegationRequest request, Long customerId) {
@@ -85,6 +84,7 @@ public class DelegationServiceImpl implements DelegationService {
                 .productDescription(saved.getProductDescription())
                 .expectPrice(saved.getExpectPrice())
                 .status(saved.getStatus().name())
+                .rejectionReason(saved.getRejectionReason())
                 .bankAccountNumber(saved.getBankAccountNumber())
                 .bankName(saved.getBankName())
                 .accountHolderName(saved.getAccountHolderName())
@@ -193,6 +193,7 @@ public class DelegationServiceImpl implements DelegationService {
                     .productDescription(req.getProductDescription())
                     .expectPrice(req.getExpectPrice())
                     .status(req.getStatus().name())
+                    .rejectionReason(req.getRejectionReason())
                     .bankAccountNumber(req.getBankAccountNumber())
                     .bankName(req.getBankName())
                     .accountHolderName(req.getAccountHolderName())
@@ -228,6 +229,7 @@ public class DelegationServiceImpl implements DelegationService {
                 .productDescription(request.getProductDescription())
                 .expectPrice(request.getExpectPrice())
                 .status(request.getStatus().name())
+                .rejectionReason(request.getRejectionReason())
                 .bankAccountNumber(request.getBankAccountNumber())
                 .bankName(request.getBankName())
                 .accountHolderName(request.getAccountHolderName())

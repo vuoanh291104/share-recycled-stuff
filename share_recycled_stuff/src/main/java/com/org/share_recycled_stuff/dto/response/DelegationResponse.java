@@ -22,6 +22,7 @@ public class DelegationResponse {
 
     @Schema(description = "Proxy seller ID", example = "5")
     private Long proxySellerId;
+
     private String customerName;
     private String proxySellerName;
 
@@ -42,6 +43,9 @@ public class DelegationResponse {
 
     @Schema(description = "Delegation status (PENDING/APPROVED/REJECTED)", example = "PENDING")
     private String status;
+
+    @Schema(description = "Reason for rejection (only when status is REJECTED)", example = "Hình ảnh sản phẩm không rõ ràng")
+    private String rejectionReason;
 
     @Schema(description = "Creation timestamp", example = "2024-01-01T10:00:00")
     private LocalDateTime createdAt;
