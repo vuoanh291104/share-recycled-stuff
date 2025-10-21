@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class ProxySellerServiceImpl implements ProxySellerService {
@@ -132,4 +133,12 @@ public class ProxySellerServiceImpl implements ProxySellerService {
                 requestId
         );
     }
+    @Override
+    public List<UpgradeRequestResponse> getMyRequests(String email) {
+        Account account = accountRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        return requestRepository.findMyRequestsByAccountId(account.getId());
+    }
+
 }

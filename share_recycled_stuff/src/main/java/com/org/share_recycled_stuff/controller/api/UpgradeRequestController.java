@@ -15,12 +15,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Tag(name = "Upgrade Requests", description = "Customer to Proxy Seller upgrade request endpoints")
 @RestController
@@ -76,4 +74,24 @@ public class UpgradeRequestController {
                         .build()
         );
     }
+    @Operation(summary = "Get my upgrade requests", description = "Customer retrieves a list of their own upgrade requests to check the status.")
+    @GetMapping("/upgrade-request/my-requests")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<List<UpgradeRequestResponse>>> getMyUpgradeRequests(
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest request
+    ) {
+        List<UpgradeRequestResponse> response = proxySellerService.getMyRequests(userDetail.getEmail());
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<UpgradeRequestResponse>>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Lấy danh sách yêu cầu thành công")
+                        .path(request.getRequestURI())
+                        .timestamp(LocalDateTime.now().toString())
+                        .result(response)
+                        .build()
+        );
+    }
+
 }
