@@ -1,32 +1,45 @@
 package com.org.share_recycled_stuff.config;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.EnableCaching;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.listener.PatternTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-@Slf4j
 @Configuration
-@EnableCaching
 public class RedisConfig {
 
     @Bean
-    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory connectionFactory) {
-        StringRedisTemplate template = new StringRedisTemplate();
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
-
-        // Use String serializer for both key and value
+        
+        ObjectMapper om = new ObjectMapper();
+        om.registerModule(new JavaTimeModule());
+        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(om, Object.class);
+        
         template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new StringRedisSerializer());
+        template.setValueSerializer(serializer);
         template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(new StringRedisSerializer());
-
-        template.afterPropertiesSet();
-
-        log.info("StringRedisTemplate configured successfully");
+        template.setHashValueSerializer(serializer);
+        
         return template;
+    }
+
+    @Bean
+    public RedisMessageListenerContainer redisContainer(RedisConnectionFactory connectionFactory) {
+        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        return container;
+    }
+
+    @Bean
+    public PatternTopic chatMessagesTopic() {
+        return new PatternTopic("chat:messages");
     }
 }

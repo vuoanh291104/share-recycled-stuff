@@ -82,6 +82,8 @@ public class SecurityConfig {
                         ).permitAll()
                         // Public endpoints
                         .requestMatchers("/api/auth/**", "/api/public/**").permitAll()
+                        // Chat service endpoints (called by Go service)
+                        .requestMatchers("/api/v1/chat/validate-token").permitAll() // Only token validation needed
                         // Admin endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/profile/**").hasAnyRole("ADMIN", "CUSTOMER", "PROXY_SELLER")
@@ -105,11 +107,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:8080"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:8080", "file://", "null"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
