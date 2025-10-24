@@ -47,6 +47,11 @@ public enum ErrorCode {
     //Image
     IMAGE_NOT_FOUND("IMAGE_001", "Image not found", HttpStatus.NOT_FOUND),
 
+    //Review
+    REVIEW_NOT_FOUND("REVIEW_001", "Review not found", HttpStatus.NOT_FOUND),
+    CANNOT_DELETE_REVIEW("REVIEW_002", "You do not have permission to delete this review", HttpStatus.FORBIDDEN),
+    REVIEW_ALREADY_EXISTS("REVIEW_003", "Review already exists", HttpStatus.CONFLICT),
+
     //Report
     REPORT_NOT_FOUND("REPORT_001", "Report not found", HttpStatus.NOT_FOUND),
     ALREADY_REPORTED_POST("REPORT_002", "You have already reported this post", HttpStatus.CONFLICT),
