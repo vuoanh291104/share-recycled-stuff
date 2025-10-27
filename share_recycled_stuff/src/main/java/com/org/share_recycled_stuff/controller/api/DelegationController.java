@@ -254,4 +254,43 @@ public class DelegationController {
 
         throw new AppException(ErrorCode.ACCESS_DENIED, "Không tìm thấy vai trò hợp lệ của người dùng");
     }
+    @Operation(
+            summary = "Customer marks request as In Transit (Shipping)",
+            description = "Customer confirms they are shipping the product to the Proxy Seller"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Request status updated to IN_TRANSIT successfully"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid state transition (e.g., request not in APPROVED state)"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Delegation request not found"
+            )
+    })
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @PatchMapping("/{id}/in-transit")
+    public ResponseEntity<ApiResponse<Void>> markRequestAsInTransit(
+            @Parameter(description = "Delegation request ID", required = true, example = "1")
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest
+    ) {
+        delegationService.markAsInTransit(
+                id,
+                userDetail.getAccountId()
+        );
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Cập nhật trạng thái 'Đang giao' thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .build()
+        );
+    }
 }

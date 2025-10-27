@@ -11,10 +11,11 @@ public enum DelegationRequestsStatus {
     PENDING(1, "Pending"),
     APPROVED(2, "Approved"),
     REJECTED(3, "Rejected"),
-    PRODUCT_RECEIVED(4, "Product Received"),
-    SELLING(5, "Selling"),
-    SOLD(6, "Sold"),
-    PAYMENT_COMPLETED(7, "Payment Completed");
+    IN_TRANSIT(4, "In Transit"),
+    PRODUCT_RECEIVED(5, "Product Received"),
+    SELLING(6, "Selling"),
+    SOLD(7, "Sold"),
+    PAYMENT_COMPLETED(8, "Payment Completed");
 
     private final int code;
     private final String displayName;

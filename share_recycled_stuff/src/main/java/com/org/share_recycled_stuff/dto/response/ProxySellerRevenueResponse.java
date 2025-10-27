@@ -11,6 +11,9 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProxySellerRevenueResponse {
+    private Long proxySellerId;
+    private Integer year;
+    private Integer month;
     private String name;
     private BigDecimal totalRevenue;
     private BigDecimal discountProfitPayable;

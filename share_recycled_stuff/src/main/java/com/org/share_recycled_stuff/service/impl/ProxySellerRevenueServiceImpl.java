@@ -45,6 +45,9 @@ public class ProxySellerRevenueServiceImpl implements ProxySellerRevenueService 
         Page<ProxySellerMonthlyRevenue> result = revenueRepository.findAllByMonthAndYear(month, year, pageable);
 
         return result.map(r -> ProxySellerRevenueResponse.builder()
+                .proxySellerId(r.getProxySeller().getId())
+                .year(r.getYear())
+                .month(r.getMonth())
                 .name(r.getProxySeller().getUser().getFullName())
                 .totalRevenue(r.getTotalSalesAmount())
                 .discountProfitPayable(r.getAdminCommissionAmount())

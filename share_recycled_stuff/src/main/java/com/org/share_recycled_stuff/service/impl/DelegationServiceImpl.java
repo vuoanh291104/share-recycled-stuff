@@ -238,4 +238,34 @@ public class DelegationServiceImpl implements DelegationService {
                 .updatedAt(request.getUpdatedAt())
                 .build();
     }
+    @Override
+    public void markAsInTransit(Long delegationId, Long customerId) {
+        DelegationRequests request = delegationRequestsRepository.findById(delegationId)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST, "Không tìm thấy yêu cầu ủy thác."));
+
+        if (!request.getCustomer().getId().equals(customerId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền thực hiện hành động này.");
+        }
+
+        if (request.getStatus() != DelegationRequestsStatus.APPROVED) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Chỉ có thể giao sản phẩm từ trạng thái 'Đã duyệt' (APPROVED).");
+        }
+
+        request.setStatus(DelegationRequestsStatus.IN_TRANSIT);
+        delegationRequestsRepository.save(request);
+
+        String inTransitMessage = String.format("Khách hàng %s đã bắt đầu giao sản phẩm \"%s\" cho bạn.",
+                request.getCustomer().getUser().getFullName(),
+                request.getProductDescription());
+
+        notificationService.createNotification(
+                request.getProxySeller().getId(),
+                "Sản phẩm ủy thác đang được giao",
+                inTransitMessage,
+                13,
+                3,
+                "DelegationRequest",
+                delegationId
+        );
+    }
 }
