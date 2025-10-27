@@ -12,7 +12,11 @@ public interface DelegationService {
 
     void reject(Long requestId, Long proxySellerId, String reason);
 
+    void markAsInTransit(Long delegationId, Long customerId);
+
     Page<DelegationResponse> getDelegationRequests(Long accountId, String role, Pageable pageable);
 
     DelegationResponse getDelegationRequestDetail(Long id, Long accountId, String role);
+
+
 }
