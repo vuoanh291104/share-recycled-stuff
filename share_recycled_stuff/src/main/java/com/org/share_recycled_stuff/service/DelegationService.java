@@ -14,6 +14,14 @@ public interface DelegationService {
 
     void markAsInTransit(Long delegationId, Long customerId);
 
+    void markAsProductReceived(Long delegationId, Long proxySellerId);
+
+    void markAsSelling(Long delegationId, Long proxySellerId);
+
+    void markAsSold(Long delegationId, Long proxySellerId);
+
+    void markAsPaymentCompleted(Long delegationId, Long proxySellerId);
+
     Page<DelegationResponse> getDelegationRequests(Long accountId, String role, Pageable pageable);
 
     DelegationResponse getDelegationRequestDetail(Long id, Long accountId, String role);

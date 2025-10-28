@@ -268,4 +268,123 @@ public class DelegationServiceImpl implements DelegationService {
                 delegationId
         );
     }
+    @Override
+    public void markAsProductReceived(Long delegationId, Long proxySellerId) {
+        DelegationRequests request = delegationRequestsRepository.findById(delegationId)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST, "Không tìm thấy yêu cầu ủy thác."));
+
+        if (!request.getProxySeller().getId().equals(proxySellerId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền cập nhật yêu cầu này");
+        }
+
+        if (request.getStatus() != DelegationRequestsStatus.IN_TRANSIT) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Chỉ có thể xác nhận nhận hàng từ trạng thái 'Đang vận chuyển'.");
+        }
+
+        request.setStatus(DelegationRequestsStatus.PRODUCT_RECEIVED);
+        delegationRequestsRepository.save(request);
+
+        String message = String.format("Proxy seller đã xác nhận nhận được sản phẩm \"%s\" của bạn.",
+                request.getProductDescription());
+
+        notificationService.createNotification(
+                request.getCustomer().getId(),
+                "Đã nhận hàng ký gửi",
+                message,
+                14,
+                3,
+                "DelegationRequest",
+                delegationId
+        );
+    }
+
+    @Override
+    public void markAsSelling(Long delegationId, Long proxySellerId) {
+        DelegationRequests request = delegationRequestsRepository.findById(delegationId)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST, "Không tìm thấy yêu cầu ủy thác."));
+
+        if (!request.getProxySeller().getId().equals(proxySellerId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền cập nhật yêu cầu này");
+        }
+
+        if (request.getStatus() != DelegationRequestsStatus.PRODUCT_RECEIVED) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Chỉ có thể đăng bán sản phẩm từ trạng thái 'Đã nhận hàng'.");
+        }
+
+        request.setStatus(DelegationRequestsStatus.SELLING);
+        delegationRequestsRepository.save(request);
+
+        String message = String.format("Sản phẩm ký gửi \"%s\" của bạn đã được đăng bán.",
+                request.getProductDescription());
+
+        notificationService.createNotification(
+                request.getCustomer().getId(),
+                "Sản phẩm đã được đăng bán",
+                message,
+                15,
+                3,
+                "DelegationRequest",
+                delegationId
+        );
+    }
+
+    @Override
+    public void markAsSold(Long delegationId, Long proxySellerId) {
+        DelegationRequests request = delegationRequestsRepository.findById(delegationId)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST, "Không tìm thấy yêu cầu ủy thác."));
+
+        if (!request.getProxySeller().getId().equals(proxySellerId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền cập nhật yêu cầu này");
+        }
+
+        if (request.getStatus() != DelegationRequestsStatus.SELLING) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Chỉ có thể xác nhận 'Đã bán' từ trạng thái 'Đang bán'.");
+        }
+
+        request.setStatus(DelegationRequestsStatus.SOLD);
+        delegationRequestsRepository.save(request);
+
+        String message = String.format("Sản phẩm ký gửi \"%s\" của bạn đã được bán thành công.",
+                request.getProductDescription());
+
+        notificationService.createNotification(
+                request.getCustomer().getId(),
+                "Sản phẩm đã bán",
+                message,
+                16,
+                3,
+                "DelegationRequest",
+                delegationId
+        );
+    }
+
+    @Override
+    public void markAsPaymentCompleted(Long delegationId, Long proxySellerId) {
+        DelegationRequests request = delegationRequestsRepository.findById(delegationId)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST, "Không tìm thấy yêu cầu ủy thác."));
+
+        if (!request.getProxySeller().getId().equals(proxySellerId)) {
+            throw new AppException(ErrorCode.ACCESS_DENIED, "Bạn không có quyền cập nhật yêu cầu này");
+        }
+
+        if (request.getStatus() != DelegationRequestsStatus.SOLD) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Chỉ có thể hoàn tất thanh toán từ trạng thái 'Đã bán'.");
+        }
+
+        request.setStatus(DelegationRequestsStatus.PAYMENT_COMPLETED);
+        delegationRequestsRepository.save(request);
+
+        String message = String.format("Thanh toán cho sản phẩm ký gửi \"%s\" đã được hoàn tất. Cảm ơn bạn!",
+                request.getProductDescription());
+
+        notificationService.createNotification(
+                request.getCustomer().getId(),
+                "Hoàn tất thanh toán ký gửi",
+                message,
+                17,
+                3,
+                "DelegationRequest",
+                delegationId
+        );
+    }
 }
