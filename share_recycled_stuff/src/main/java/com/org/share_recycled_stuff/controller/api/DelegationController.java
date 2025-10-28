@@ -293,4 +293,107 @@ public class DelegationController {
                         .build()
         );
     }
+    @Operation(
+            summary = "Mark request as Product Received",
+            description = "Proxy seller marks a request as product received"
+    )
+    @PreAuthorize("hasRole('PROXY_SELLER')")
+    @PatchMapping("/{id}/product-received")
+    public ResponseEntity<ApiResponse<Void>> markRequestAsProductReceived(
+            @Parameter(description = "Delegation request ID", required = true, example = "1")
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest
+    ) {
+        delegationService.markAsProductReceived(
+                id,
+                userDetail.getAccountId()
+        );
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Cập nhật trạng thái 'Đã nhận hàng' thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .build()
+        );
+    }
+
+    @Operation(
+            summary = "Mark request as Selling",
+            description = "Proxy seller marks a request as now selling"
+    )
+    @PreAuthorize("hasRole('PROXY_SELLER')")
+    @PatchMapping("/{id}/selling")
+    public ResponseEntity<ApiResponse<Void>> markRequestAsSelling(
+            @Parameter(description = "Delegation request ID", required = true, example = "1")
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest
+    ) {
+        delegationService.markAsSelling(
+                id,
+                userDetail.getAccountId()
+        );
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Cập nhật trạng thái 'Đang bán' thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .build()
+        );
+    }
+
+    @Operation(
+            summary = "Mark request as Sold",
+            description = "Proxy seller marks a request as sold"
+    )
+    @PreAuthorize("hasRole('PROXY_SELLER')")
+    @PatchMapping("/{id}/sold")
+    public ResponseEntity<ApiResponse<Void>> markRequestAsSold(
+            @Parameter(description = "Delegation request ID", required = true, example = "1")
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest
+    ) {
+        delegationService.markAsSold(
+                id,
+                userDetail.getAccountId()
+        );
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Cập nhật trạng thái 'Đã bán' thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .build()
+        );
+    }
+
+    @Operation(
+            summary = "Mark request as Payment Completed",
+            description = "Proxy seller marks a request as payment completed"
+    )
+    @PreAuthorize("hasRole('PROXY_SELLER')")
+    @PatchMapping("/{id}/payment-completed")
+    public ResponseEntity<ApiResponse<Void>> markRequestAsPaymentCompleted(
+            @Parameter(description = "Delegation request ID", required = true, example = "1")
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetail userDetail,
+            HttpServletRequest httpRequest
+    ) {
+        delegationService.markAsPaymentCompleted(
+                id,
+                userDetail.getAccountId()
+        );
+        return ResponseEntity.ok(
+                ApiResponse.<Void>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Cập nhật trạng thái 'Hoàn tất thanh toán' thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .build()
+        );
+    }
 }
