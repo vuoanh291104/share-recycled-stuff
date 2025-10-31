@@ -48,7 +48,7 @@ func main() {
 
 	// Initialize Fiber
 	app := fiber.New(fiber.Config{
-		Prefork:      true,
+		Prefork:      false,
 		AppName:      "Chat Service v1.0",
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
