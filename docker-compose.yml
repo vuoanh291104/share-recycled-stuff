@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: share_recycled_stuff_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: share_recycled_stuff_db
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - "33306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - share_recycled_stuff_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    container_name: share_recycled_stuff_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - share_recycled_stuff_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  app:
+   build:
+     context: .
+     dockerfile: Dockerfile
+   container_name: share_recycled_stuff_app
+   restart: unless-stopped
+   ports:
+     - "8080:8080"
+   environment:
+     # Database
+     SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/share_recycled_stuff_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+     SPRING_DATASOURCE_USERNAME: root
+     SPRING_DATASOURCE_PASSWORD: password
+     SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+
+     # JPA
+     SPRING_JPA_HIBERNATE_DDL_AUTO: update
+     SPRING_JPA_SHOW_SQL: "true"
+     SPRING_JPA_OPEN_IN_VIEW: "false"
+     SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQLDialect
+     SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: "true"
+
+     # Redis
+     SPRING_DATA_REDIS_HOST: redis
+     SPRING_DATA_REDIS_PORT: 6379
+     SPRING_DATA_REDIS_TIMEOUT: 2000ms
+     SPRING_DATA_REDIS_LETTUCE_POOL_MAX_ACTIVE: 8
+     SPRING_DATA_REDIS_LETTUCE_POOL_MAX_IDLE: 8
+     SPRING_DATA_REDIS_LETTUCE_POOL_MIN_IDLE: 0
+     SPRING_DATA_REDIS_LETTUCE_POOL_MAX_WAIT: -1ms
+
+     # Mail
+     SPRING_MAIL_HOST: smtp.gmail.com
+     SPRING_MAIL_PORT: 587
+     SPRING_MAIL_USERNAME: your_email@gmail.com
+     SPRING_MAIL_PASSWORD: your_app_password
+     SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
+     SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
+
+     # Messages
+     SPRING_MESSAGES_BASENAME: messages
+     SPRING_MESSAGES_ENCODING: UTF-8
+
+     # Server
+     SERVER_PORT: 8080
+
+     # JWT
+     APP_JWT_SECRET: myVeryLongAndSecureSecretKeyThatIsAtLeast64CharactersLongForHS512Algorithm
+     APP_JWT_ACCESS_TOKEN_EXPIRATION: 3600000
+     APP_JWT_REFRESH_TOKEN_EXPIRATION: 604800000
+   depends_on:
+     - mysql
+     - redis
+   networks:
+     - share_recycled_stuff_network
+
+  chat-service:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile
+    container_name: share_recycled_stuff_chat
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      SERVER_PORT: 3003
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ""
+      MYSQL_DSN: root:password@tcp(mysql:3306)/share_recycled_stuff_db?parseTime=true
+      SPRING_BOOT_URL: http://app:8080
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_started
+    networks:
+      - share_recycled_stuff_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  share_recycled_stuff_network:
+    driver: bridge
