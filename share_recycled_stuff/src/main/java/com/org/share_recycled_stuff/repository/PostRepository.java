@@ -1,5 +1,6 @@
 package com.org.share_recycled_stuff.repository;
 
+import com.org.share_recycled_stuff.entity.Account;
 import com.org.share_recycled_stuff.entity.Post;
 import com.org.share_recycled_stuff.entity.enums.PostStatus;
 import org.springframework.data.domain.Page;
@@ -129,4 +130,15 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             @Param("status") PostStatus status,
             Pageable pageable
     );
+    @Query("SELECT COUNT(p) FROM Post p " +
+            "WHERE (:account IS NULL OR p.account = :account) " +
+            "AND (:status IS NULL OR p.status = :status) " +
+            "AND (:day IS NULL OR DAY(p.createdAt) = :day) " +
+            "AND (:month IS NULL OR MONTH(p.createdAt) = :month) " +
+            "AND (:year IS NULL OR YEAR(p.createdAt) = :year)")
+    long countFiltered(@Param("account") Account account,
+                       @Param("status") PostStatus status,
+                       @Param("day") Integer day,
+                       @Param("month") Integer month,
+                       @Param("year") Integer year);
 }
