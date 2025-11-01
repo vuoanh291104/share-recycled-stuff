@@ -1,6 +1,8 @@
 package com.org.share_recycled_stuff.repository;
 
+import com.org.share_recycled_stuff.entity.Account;
 import com.org.share_recycled_stuff.entity.DelegationRequests;
+import com.org.share_recycled_stuff.entity.enums.DelegationRequestsStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
@@ -32,6 +34,18 @@ public interface DelegationRequestsRepository extends JpaRepository<DelegationRe
             "LEFT JOIN FETCH r.proxySeller ps LEFT JOIN FETCH ps.user " +
             "WHERE r.id = :id")
     Optional<DelegationRequests> findByIdWithImages(@Param("id") Long id);
+
+    @Query("SELECT COUNT(d) FROM DelegationRequests d " +
+            "WHERE (:account IS NULL OR d.proxySeller = :account) " +
+            "AND (:status IS NULL OR d.status = :status) " +
+            "AND (:day IS NULL OR DAY(d.createdAt) = :day) " +
+            "AND (:month IS NULL OR MONTH(d.createdAt) = :month) " +
+            "AND (:year IS NULL OR YEAR(d.createdAt) = :year)")
+    long countFiltered(@Param("account") Account account,
+                       @Param("status") DelegationRequestsStatus status,
+                       @Param("day") Integer day,
+                       @Param("month") Integer month,
+                       @Param("year") Integer year);
 
     Page<DelegationRequests> findByProxySellerId(Long accountId, Pageable pageable);
     Page<DelegationRequests> findByCustomerId(Long accountId, Pageable pageable);
