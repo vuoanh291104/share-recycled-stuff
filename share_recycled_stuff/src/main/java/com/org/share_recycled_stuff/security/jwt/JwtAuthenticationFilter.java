@@ -1,7 +1,10 @@
 package com.org.share_recycled_stuff.security.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.org.share_recycled_stuff.config.CustomUserDetail;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
+import com.org.share_recycled_stuff.entity.Account;
+import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.security.CustomUserDetailsService;
 import com.org.share_recycled_stuff.service.JwtService;
 import jakarta.servlet.FilterChain;
@@ -28,6 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService tokenProvider;
     private final CustomUserDetailsService userDetailsService;
+    private final AccountRepository accountRepository;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -54,10 +58,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
 
+                // Check if account tokens are blacklisted
+                Long accountId = tokenProvider.getAccountIdFromToken(jwt);
+                if (accountId != null && tokenProvider.isAccountTokenBlacklisted(accountId)) {
+                    log.warn("Blocked token for blacklisted account: {} for request: {}", accountId, request.getRequestURI());
+                    sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN,
+                            "Account locked",
+                            "Your account has been locked",
+                            request.getRequestURI());
+                    return;
+                }
+
                 // Only check access token type after validating it's not blacklisted
                 if (tokenProvider.isAccessToken(jwt)) {
                     String email = tokenProvider.getEmailFromToken(jwt);
                     UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+                    // Check if account is currently locked
+                    if (userDetails instanceof CustomUserDetail) {
+                        CustomUserDetail customUserDetail = (CustomUserDetail) userDetails;
+                        Account account = accountRepository.findById(customUserDetail.getAccountId()).orElse(null);
+                        if (account != null && account.isCurrentlyLocked()) {
+                            log.warn("Account is locked: {} for request: {}", email, request.getRequestURI());
+                            sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN,
+                                    "Account locked",
+                                    "Your account has been locked",
+                                    request.getRequestURI());
+                            return;
+                        }
+                    }
+
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

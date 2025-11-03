@@ -30,7 +30,7 @@ public interface UserMapper {
     UserDetailResponse toUserDetailResponse(Account account);
 
     default String mapStatus(Account account) {
-        return account.isLocked() ? "LOCKED" : "ACTIVE";
+        return account.isCurrentlyLocked() ? "LOCKED" : "ACTIVE";
     }
 
     default Set<Role> mapRoles(Account account) {
@@ -43,7 +43,7 @@ public interface UserMapper {
     }
 
     default String mapLockedBy(Account account) {
-        if (account == null || !account.isLocked()) {
+        if (account == null || !account.isCurrentlyLocked()) {
             return null;
         }
         return "SYSTEM";

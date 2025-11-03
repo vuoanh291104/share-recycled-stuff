@@ -173,7 +173,7 @@ public class JwtServiceImpl implements JwtService {
             Boolean hasKey = stringRedisTemplate.hasKey(key);
             long duration = System.currentTimeMillis() - startTime;
 
-            boolean isBlacklisted = Boolean.TRUE.equals(hasKey);
+            boolean isBlacklisted = hasKey;
 
             // Log for monitoring (debug level for normal checks, warn for blocked tokens)
             if (isBlacklisted) {
@@ -237,5 +237,56 @@ public class JwtServiceImpl implements JwtService {
         String tokenType = claims.get("tokenType", String.class);
         String prefix = "ACCESS".equals(tokenType) ? BLACKLIST_ACCESS_PREFIX : BLACKLIST_REFRESH_PREFIX;
         return prefix + jtiValue;
+    }
+
+    @Override
+    public void blacklistAccountTokens(Long accountId, Duration duration) {
+        if (duration == null || duration.isZero() || duration.isNegative()) {
+            log.debug("Skip blacklisting account tokens due to non-positive duration");
+            return;
+        }
+
+        String key = "blacklist:account:" + accountId;
+
+        try {
+            long startTime = System.currentTimeMillis();
+            stringRedisTemplate.opsForValue().set(key, "locked", duration);
+            long executionTime = System.currentTimeMillis() - startTime;
+
+            log.info("Blacklisted all tokens for account: {} for {} seconds (execution: {}ms)",
+                    accountId, duration.getSeconds(), executionTime);
+        } catch (RedisConnectionFailureException ex) {
+            log.error("Redis unavailable when blacklisting account tokens - accountId: {}", accountId, ex);
+            throw new AppException(ErrorCode.SERVICE_UNAVAILABLE, ex);
+        } catch (Exception ex) {
+            log.error("Failed to blacklist account tokens - accountId: {}", accountId, ex);
+            throw new AppException(ErrorCode.INTERNAL_ERROR, ex);
+        }
+    }
+
+    @Override
+    public boolean isAccountTokenBlacklisted(Long accountId) {
+        try {
+            String key = "blacklist:account:" + accountId;
+            long startTime = System.currentTimeMillis();
+            Boolean hasKey = stringRedisTemplate.hasKey(key);
+            long duration = System.currentTimeMillis() - startTime;
+
+            boolean isBlacklisted = hasKey;
+
+            if (isBlacklisted) {
+                log.warn("Account tokens are blacklisted - accountId: {}, Duration: {}ms", accountId, duration);
+            } else {
+                log.debug("Account token check - accountId: {}, Blacklisted: false, Duration: {}ms", accountId, duration);
+            }
+
+            return isBlacklisted;
+        } catch (RedisConnectionFailureException e) {
+            log.error("Redis unavailable when checking account blacklist - failing safe (allowing token)", e);
+            return false; // Fail-safe: allow the token if Redis is down
+        } catch (Exception e) {
+            log.error("Error checking account blacklist for accountId: {}", accountId, e);
+            return false; // Fail-safe: allow the token on error
+        }
     }
 }

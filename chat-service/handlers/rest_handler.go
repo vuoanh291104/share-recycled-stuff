@@ -3,6 +3,8 @@ package handlers
 import (
 	"chat-service/services"
 	"fmt"
+	"log"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -29,9 +31,9 @@ func NewRestHandler(
 func (h *RestHandler) GetOnlineUsers(c *fiber.Ctx) error {
 	users := h.manager.GetOnlineUsers()
 	return c.JSON(fiber.Map{
-		"success": true,
-		"count":   len(users),
-		"users":   users,
+		"success":      true,
+		"count":        len(users),
+		"online_users": users,
 	})
 }
 
@@ -89,7 +91,7 @@ func (h *RestHandler) GetMessageHistory(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to load history"})
 	}
 
-	fmt.Printf("✅ GetMessageHistory: Found %d messages\n", len(messages))
+	fmt.Printf("GetMessageHistory: Found %d messages\n", len(messages))
 
 	return c.JSON(fiber.Map{
 		"success":  true,
@@ -157,4 +159,22 @@ func (h *RestHandler) HealthCheck(c *fiber.Ctx) error {
 	}
 
 	return c.Status(statusCode).JSON(health)
+}
+
+func (h *RestHandler) ForceDisconnectUser(c *fiber.Ctx) error {
+	accountID := c.Params("accountId")
+	userID, err := strconv.ParseInt(accountID, 10, 64)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid account ID"})
+	}
+
+	log.Printf("Force disconnecting user: %d", userID)
+
+	// Disconnect user's WebSocket connection
+	h.manager.DisconnectUser(userID)
+
+	return c.JSON(fiber.Map{
+		"message":   "User disconnected successfully",
+		"accountId": userID,
+	})
 }

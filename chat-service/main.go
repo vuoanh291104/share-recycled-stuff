@@ -77,6 +77,9 @@ func main() {
 	api.Get("/users/online", authMiddleware, restHandler.GetOnlineUsers)
 	api.Get("/users/:userId/online", authMiddleware, restHandler.CheckUserOnline)
 
+	// Admin endpoints (called by Spring Boot, no auth needed)
+	api.Post("/admin/disconnect/:accountId", restHandler.ForceDisconnectUser)
+
 	// WebSocket upgrade middleware
 	app.Use("/ws", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {

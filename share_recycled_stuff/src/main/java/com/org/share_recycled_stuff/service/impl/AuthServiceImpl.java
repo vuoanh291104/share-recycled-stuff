@@ -263,7 +263,7 @@ public class AuthServiceImpl implements AuthService {
                 });
 
         // Kiểm tra xem tài khoản có bị khóa không
-        if (account.isLocked()) {
+        if (account.isCurrentlyLocked()) {
             log.warn("Forgot password request for locked account: {}", normalizedEmail);
             throw new AppException(ErrorCode.ACCOUNT_LOCKED);
         }

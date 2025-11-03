@@ -110,4 +110,24 @@ public class Account {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    public boolean isCurrentlyLocked() {
+        if (!this.isLocked) {
+            return false;
+        }
+
+        // Permanent lock (lockedUntil = null) → vẫn bị lock
+        if (this.lockedUntil == null) {
+            return true;
+        }
+
+        // Temporary lock → check expiry
+        if (this.lockedUntil.isBefore(LocalDateTime.now())) {
+            // Lock đã hết hạn → coi như không bị lock
+            return false;
+        }
+
+        // Vẫn còn bị lock
+        return true;
+    }
 }

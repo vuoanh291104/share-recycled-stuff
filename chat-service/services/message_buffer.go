@@ -23,7 +23,7 @@ func NewMessageBuffer(client *SpringBootClient) *MessageBuffer {
 	}
 
 	go buffer.run()
-	log.Println("✅ Message buffer started (batch: 10, interval: 2s)")
+	log.Println("Message buffer started (batch: 10, interval: 2s)")
 
 	return buffer
 }

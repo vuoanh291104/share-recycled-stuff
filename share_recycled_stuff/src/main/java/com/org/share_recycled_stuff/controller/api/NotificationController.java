@@ -6,6 +6,10 @@ import com.org.share_recycled_stuff.dto.request.MarkAsReadRequest;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
 import com.org.share_recycled_stuff.dto.response.NotificationResponse;
 import com.org.share_recycled_stuff.dto.response.UnreadCountResponse;
+import com.org.share_recycled_stuff.entity.Account;
+import com.org.share_recycled_stuff.exception.AppException;
+import com.org.share_recycled_stuff.exception.ErrorCode;
+import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.service.NotificationService;
 import com.org.share_recycled_stuff.utils.SseEmitterManager;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +44,7 @@ public class NotificationController {
 
     private final NotificationService notificationService;
     private final SseEmitterManager sseEmitterManager;
+    private final AccountRepository accountRepository;
 
     @Operation(
             summary = "Stream real-time notifications",
@@ -58,6 +63,16 @@ public class NotificationController {
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamNotifications(@AuthenticationPrincipal CustomUserDetail userDetail) {
         Long accountId = userDetail.getAccountId();
+        
+        // Check if account is locked before establishing SSE connection
+        Account account = accountRepository.findById(accountId)
+            .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+            
+        if (account.isCurrentlyLocked()) {
+            log.warn("Locked account attempting SSE connection: {}", accountId);
+            throw new AppException(ErrorCode.ACCOUNT_LOCKED);
+        }
+        
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
 
         sseEmitterManager.addEmitter(accountId, emitter);

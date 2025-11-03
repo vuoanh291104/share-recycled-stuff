@@ -90,5 +90,35 @@ public class SseEmitterManager {
             log.info("Removed all SSE emitters for account ID: {}", accountId);
         }
     }
+
+    public void disconnectAndNotify(Long accountId, String reason) {
+        Set<SseEmitter> userEmitters = emitters.get(accountId);
+
+        if (userEmitters == null || userEmitters.isEmpty()) {
+            log.debug("No active SSE connections to disconnect for account ID: {}", accountId);
+            return;
+        }
+
+        log.info("Disconnecting SSE connections for locked account ID: {}", accountId);
+
+        // Send account_locked event before closing
+        userEmitters.forEach(emitter -> {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("account_locked")
+                        .data(Map.of(
+                            "reason", reason,
+                            "timestamp", java.time.LocalDateTime.now().toString()
+                        )));
+                emitter.complete();
+            } catch (Exception e) {
+                log.warn("Error sending account_locked event to account ID: {}", accountId, e);
+            }
+        });
+
+        // Remove all emitters
+        emitters.remove(accountId);
+        log.info("Removed all SSE emitters for locked account ID: {}", accountId);
+    }
 }
 

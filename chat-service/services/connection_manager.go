@@ -185,3 +185,34 @@ func (m *ConnectionManager) PingRedis() error {
 func (m *ConnectionManager) SendMessage(message *models.Message) {
 	m.broadcast <- message
 }
+
+func (m *ConnectionManager) DisconnectUser(accountID int64) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if client, exists := m.clients[accountID]; exists {
+		log.Printf("🔒 Disconnecting WebSocket for locked account: %d", accountID)
+
+		// Send disconnect message before closing
+		disconnectMsg := &models.Message{
+			Content:    "Your account has been locked",
+			SenderId:   0, // System message
+			ReceiverId: accountID,
+			CreatedAt:  time.Now(),
+		}
+
+		select {
+		case client.Send <- disconnectMsg:
+		default:
+			// Channel full, skip
+		}
+
+		// Close connection
+		client.Conn.Close()
+		delete(m.clients, accountID)
+
+		log.Printf("WebSocket disconnected for account: %d", accountID)
+	} else {
+		log.Printf("No active WebSocket connection for account: %d", accountID)
+	}
+}
