@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Service Test Client</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            max-width: 900px; 
+            margin: 30px auto; 
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 { 
+            color: #333; 
+            margin-top: 0;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .config-section {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label { 
+            display: block;
+            font-weight: 600; 
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input[type="text"], input[type="number"], select { 
+            padding: 10px; 
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        button { 
+            padding: 10px 20px; 
+            margin: 5px 5px 5px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .btn-connect { background: #4CAF50; color: white; }
+        .btn-disconnect { background: #f44336; color: white; }
+        .btn-send { background: #2196F3; color: white; }
+        .btn-load { background: #FF9800; color: white; }
+        .btn-clear { background: #9E9E9E; color: white; }
+        #messages { 
+            border: 1px solid #ddd; 
+            height: 450px; 
+            overflow-y: auto; 
+            padding: 15px; 
+            margin: 20px 0; 
+            background: #fafafa;
+            border-radius: 5px;
+        }
+        .message { 
+            padding: 10px 15px; 
+            margin: 8px 0; 
+            border-radius: 8px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .message.sent { 
+            background: #DCF8C6; 
+            margin-left: auto;
+            text-align: right;
+        }
+        .message.received { 
+            background: #fff; 
+            border: 1px solid #e0e0e0;
+            text-align: left;
+        }
+        .message.system { 
+            background: #E3F2FD; 
+            text-align: center; 
+            font-style: italic; 
+            color: #1976D2;
+            max-width: 100%;
+            border: 1px solid #BBDEFB;
+        }
+        .message strong { display: block; font-size: 12px; margin-bottom: 4px; opacity: 0.7; }
+        .status-bar {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .status-indicator { 
+            display: inline-block; 
+            width: 12px; 
+            height: 12px; 
+            border-radius: 50%; 
+            margin-right: 8px;
+        }
+        .status-online { background-color: #4CAF50; box-shadow: 0 0 8px #4CAF50; }
+        .status-offline { background-color: #9E9E9E; }
+        .online { color: #4CAF50; font-weight: 600; }
+        .offline { color: #9E9E9E; font-weight: 600; }
+        .info-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .input-group input {
+            flex: 1;
+        }
+        .helper-text {
+            font-size: 11px;
+            color: #999;
+            margin-top: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🚀 Chat Service Test Client</h2>
+        
+        <div class="config-section">
+            <div class="form-group">
+                <label>🌐 Server Host:</label>
+                <select id="serverHost" onchange="updateServerInfo()">
+                    <option value="localhost">localhost (Local Development)</option>
+                    <option value="pi.local">pi.local (Raspberry Pi)</option>
+                    <option value="custom">Custom Host...</option>
+                </select>
+                <input type="text" id="customHost" placeholder="Enter custom host (e.g., 192.168.1.100)" style="display: none; margin-top: 10px;" />
+                <div class="info-text" id="serverInfo">WebSocket: ws://localhost:3003/ws | API: http://localhost:3003/api/v1</div>
+            </div>
+
+            <div class="form-group">
+                <label>🔑 JWT Token:</label>
+                <input type="text" id="token" placeholder="Paste your JWT access token here" />
+                <div class="helper-text">Get token from: http://localhost:8080/swagger-ui.html → /api/auth/login</div>
+            </div>
+
+            <div class="status-bar">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="status" class="offline">Disconnected</span>
+                <div style="flex: 1;"></div>
+                <button class="btn-connect" onclick="connect()">🔌 Connect</button>
+                <button class="btn-disconnect" onclick="disconnect()">⛔ Disconnect</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>👤 Recipient User ID:</label>
+            <input type="number" id="recipientId" placeholder="Enter user ID to chat with (e.g., 2)" />
+        </div>
+
+        <div id="messages"></div>
+
+        <div class="input-group">
+            <input type="text" id="messageInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)" />
+            <button class="btn-send" onclick="sendMessage()">📤 Send</button>
+        </div>
+        
+        <div style="margin-top: 10px;">
+            <button class="btn-load" onclick="loadHistory()">📜 Load History</button>
+            <button class="btn-clear" onclick="clearMessages()">🗑️ Clear Messages</button>
+            <button class="btn-clear" onclick="checkOnlineUsers()">👥 Online Users</button>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let currentUserId = null;
+
+        function getServerHost() {
+            const hostSelect = document.getElementById('serverHost').value;
+            if (hostSelect === 'custom') {
+                const customHost = document.getElementById('customHost').value.trim();
+                return customHost || 'localhost';
+            }
+            return hostSelect;
+        }
+
+        function updateServerInfo() {
+            const hostSelect = document.getElementById('serverHost').value;
+            const customHostInput = document.getElementById('customHost');
+            const serverInfo = document.getElementById('serverInfo');
+            
+            if (hostSelect === 'custom') {
+                customHostInput.style.display = 'block';
+            } else {
+                customHostInput.style.display = 'none';
+            }
+            
+            const host = getServerHost();
+            serverInfo.textContent = `WebSocket: ws://${host}:3003/ws | API: http://${host}:3003/api/v1`;
+        }
+
+        function connect() {
+            const token = document.getElementById('token').value.trim();
+            if (!token) {
+                alert('❌ Please enter JWT token');
+                return;
+            }
+
+            const host = getServerHost();
+            const wsUrl = `ws://${host}:3003/ws?token=${encodeURIComponent(token)}`;
+            
+            console.log('🔌 Connecting to:', wsUrl.replace(token, '[TOKEN-HIDDEN]'));
+            addSystemMessage(`Connecting to ${host}:3003...`);
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('✅ Connected to chat service');
+                updateStatus(true);
+                addSystemMessage(`✅ Connected to chat service at ${host}:3003`);
+                
+                // Parse JWT to get user ID
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    currentUserId = payload.accountId;
+                    console.log('📌 Current user ID:', currentUserId);
+                    addSystemMessage(`👤 Logged in as User ID: ${currentUserId}`);
+                } catch (e) {
+                    console.warn('⚠️ Could not parse token for user ID');
+                }
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+
+            ws.onclose = (event) => {
+                console.log('❌ Disconnected. Code:', event.code, 'Reason:', event.reason);
+                updateStatus(false);
+                addSystemMessage('❌ Disconnected from chat service');
+            };
+
+            ws.onerror = (error) => {
+                console.error('⚠️ WebSocket error:', error);
+                addSystemMessage('⚠️ Connection error - Check if chat service is running');
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const recipient = parseInt(document.getElementById('recipientId').value);
+            const content = input.value.trim();
+
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('Not connected');
+                return;
+            }
+
+            if (!recipient) {
+                alert('Please enter recipient user ID');
+                return;
+            }
+
+            if (!content) return;
+
+            const message = {
+                type: 'text',
+                receiver_id: recipient,
+                content: content
+            };
+
+            ws.send(JSON.stringify(message));
+            const now = new Date().toLocaleTimeString();
+            addMessage('You', content, true, now);
+            input.value = '';
+        }
+
+        function handleMessage(message) {
+            console.log('📨 Received:', message);
+            
+            switch (message.type) {
+                case 'text':
+                    const timestamp = message.sent_at ? new Date(message.sent_at).toLocaleTimeString() : new Date().toLocaleTimeString();
+                    addMessage(`User ${message.sender_id}`, message.content, false, timestamp);
+                    
+                    // Play notification sound (optional)
+                    // new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10...').play();
+                    break;
+                
+                case 'online':
+                    addSystemMessage(`🟢 User ${message.sender_id} is now online`);
+                    break;
+                
+                case 'offline':
+                    addSystemMessage(`⚫ User ${message.sender_id} went offline`);
+                    break;
+                
+                case 'typing':
+                    if (message.is_typing) {
+                        console.log(`⌨️ User ${message.sender_id} is typing...`);
+                    }
+                    break;
+                
+                case 'error':
+                    addSystemMessage(`❌ Error: ${message.message || 'Unknown error'}`);
+                    break;
+                
+                default:
+                    console.log('Unknown message type:', message.type);
+            }
+        }
+
+        function addMessage(from, content, isSent, timestamp = '') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = isSent ? 'message sent' : 'message received';
+            
+            const timeStr = timestamp ? ` <span style="font-size: 10px; opacity: 0.6;">${timestamp}</span>` : '';
+            messageDiv.innerHTML = `<strong>${escapeHtml(from)}${timeStr}</strong> ${escapeHtml(content)}`;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addSystemMessage(content) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateStatus(online) {
+            const statusText = document.getElementById('status');
+            const statusIndicator = document.getElementById('statusIndicator');
+            
+            if (online) {
+                statusText.textContent = 'Connected';
+                statusText.className = 'online';
+                statusIndicator.className = 'status-indicator status-online';
+            } else {
+                statusText.textContent = 'Disconnected';
+                statusText.className = 'offline';
+                statusIndicator.className = 'status-indicator status-offline';
+            }
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateServerInfo();
+            addSystemMessage('👋 Welcome to Chat Service Test Client!');
+            addSystemMessage('ℹ️ Steps: 1) Select server → 2) Enter JWT token → 3) Click Connect');
+        });
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function loadHistory() {
+            const token = document.getElementById('token').value.trim();
+            const recipient = parseInt(document.getElementById('recipientId').value);
+            
+            if (!token || !recipient) {
+                alert('❌ Please enter token and recipient ID');
+                return;
+            }
+
+            const host = getServerHost();
+            addSystemMessage('📜 Loading message history...');
+
+            try {
+                const response = await fetch(
+                    `http://${host}:3003/api/v1/messages/history/${recipient}?page=0&size=50`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message || 'API returned error');
+                }
+                
+                document.getElementById('messages').innerHTML = '';
+                
+                // Display messages in reverse order (oldest first)
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.reverse().forEach(msg => {
+                        const isSent = msg.sender_id === currentUserId;
+                        const timestamp = msg.sent_at ? new Date(msg.sent_at).toLocaleTimeString() : '';
+                        addMessage(
+                            isSent ? 'You' : `User ${msg.sender_id}`,
+                            msg.content,
+                            isSent,
+                            timestamp
+                        );
+                    });
+                    addSystemMessage(`✅ Loaded ${data.messages.length} messages with User ${recipient}`);
+                } else {
+                    addSystemMessage('📭 No message history found');
+                }
+            } catch (error) {
+                console.error('❌ Failed to load history:', error);
+                addSystemMessage(`❌ Failed to load history: ${error.message}`);
+            }
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+            addSystemMessage('🗑️ Messages cleared');
+        }
+
+        async function checkOnlineUsers() {
+            const token = document.getElementById('token').value.trim();
+            
+            if (!token) {
+                alert('❌ Please enter JWT token');
+                return;
+            }
+
+            const host = getServerHost();
+            addSystemMessage('👥 Checking online users...');
+
+            try {
+                const response = await fetch(
+                    `http://${host}:3003/api/v1/users/online`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success && data.online_users) {
+                    const onlineList = data.online_users.join(', ');
+                    addSystemMessage(`👥 Online Users (${data.online_users.length}): ${onlineList || 'None'}`);
+                } else {
+                    addSystemMessage('👥 No online users found');
+                }
+            } catch (error) {
+                console.error('❌ Failed to get online users:', error);
+                addSystemMessage(`❌ Failed to get online users: ${error.message}`);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Optional: Typing indicator
+        let typingTimeout;
+        document.getElementById('messageInput').addEventListener('input', () => {
+            const recipient = parseInt(document.getElementById('recipientId').value);
+            if (!ws || !recipient) return;
+
+            clearTimeout(typingTimeout);
+            
+            ws.send(JSON.stringify({
+                type: 'typing',
+                receiver_id: recipient,
+                is_typing: true
+            }));
+
+            typingTimeout = setTimeout(() => {
+                ws.send(JSON.stringify({
+                    type: 'typing',
+                    receiver_id: recipient,
+                    is_typing: false
+                }));
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
+

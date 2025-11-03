@@ -91,6 +91,9 @@ services:
      APP_JWT_SECRET: myVeryLongAndSecureSecretKeyThatIsAtLeast64CharactersLongForHS512Algorithm
      APP_JWT_ACCESS_TOKEN_EXPIRATION: 3600000
      APP_JWT_REFRESH_TOKEN_EXPIRATION: 604800000
+     
+     # Chat Service
+     CHAT_SERVICE_URL: http://chat-service:3003
    depends_on:
      - mysql
      - redis

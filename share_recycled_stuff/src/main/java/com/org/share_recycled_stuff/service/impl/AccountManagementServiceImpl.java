@@ -17,16 +17,21 @@ import com.org.share_recycled_stuff.mapper.UserMapper;
 import com.org.share_recycled_stuff.repository.AccountRepository;
 import com.org.share_recycled_stuff.repository.UserRepository;
 import com.org.share_recycled_stuff.service.AccountManagementService;
+import com.org.share_recycled_stuff.service.JwtService;
 import com.org.share_recycled_stuff.service.NotificationService;
 import com.org.share_recycled_stuff.utils.SecurityUtils;
+import com.org.share_recycled_stuff.utils.SseEmitterManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +49,12 @@ public class AccountManagementServiceImpl implements AccountManagementService {
     private final UserMapper userMapper;
     private final SecurityUtils securityUtils;
     private final NotificationService notificationService;
+    private final SseEmitterManager sseEmitterManager;
+    private final JwtService jwtService;
+    private final RestTemplate restTemplate;
+
+    @Value("${chat.service.url:http://localhost:3003}")
+    private String chatServiceUrl;
 
     @Override
     @Transactional(readOnly = true)
@@ -147,7 +158,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
                     throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot lock administrator accounts");
                 }
 
-                if (account.isLocked()) {
+                if (account.isCurrentlyLocked()) {
                     throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Account is already locked");
                 }
 
@@ -220,7 +231,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
                     throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot unlock your own account");
                 }
 
-                if (!account.isLocked()) {
+                if (!account.isCurrentlyLocked()) {
                     throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Account is not locked");
                 }
 
@@ -284,7 +295,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot lock administrator accounts");
         }
 
-        if (account.isLocked()) {
+        if (account.isCurrentlyLocked()) {
             log.warn("Account {} is already locked", account.getEmail());
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Account is already locked");
         }
@@ -299,6 +310,27 @@ public class AccountManagementServiceImpl implements AccountManagementService {
         account.setLockedUntil(sanitizedDuration != null ? now.plusMinutes(sanitizedDuration) : null);
 
         accountRepository.save(account);
+
+        // Blacklist all JWT tokens for this account
+        Duration blacklistDuration = sanitizedDuration != null
+                ? Duration.ofMinutes(sanitizedDuration)
+                : Duration.ofDays(365 * 70); // 70 years for permanent lock
+        jwtService.blacklistAccountTokens(account.getId(), blacklistDuration);
+        log.info("Blacklisted tokens for locked account: {}", account.getId());
+
+        // Disconnect SSE connections
+        sseEmitterManager.disconnectAndNotify(account.getId(), normalizedReason);
+
+        // Disconnect WebSocket connections
+        try {
+            String url = chatServiceUrl + "/api/v1/admin/disconnect/" + account.getId();
+            restTemplate.postForEntity(url, null, java.util.Map.class);
+            log.info("Disconnected WebSocket for locked account: {}", account.getId());
+        } catch (Exception e) {
+            log.warn("Failed to disconnect WebSocket for account: {} - Error: {}", 
+                    account.getId(), e.getMessage());
+            // Don't fail the lock operation if chat service is down
+        }
 
         String lockMessage = sanitizedDuration != null
                 ? String.format("Tài khoản của bạn đã bị khóa trong %d phút. Lý do: %s", sanitizedDuration, normalizedReason)
@@ -324,7 +356,7 @@ public class AccountManagementServiceImpl implements AccountManagementService {
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Cannot unlock your own account");
         }
 
-        if (!account.isLocked()) {
+        if (!account.isCurrentlyLocked()) {
             log.warn("Account {} is not locked", account.getEmail());
             throw new AppException(ErrorCode.OPERATION_NOT_ALLOWED, "Account is not locked");
         }

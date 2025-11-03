@@ -207,7 +207,7 @@ public class ReportServiceImpl implements ReportService {
                 LockAccountRequest lockRequest = LockAccountRequest.builder()
                         .accountId(accountId)
                         .reason(reason)
-                        .durationMinutes(null)  // Permanent lock
+                        .durationMinutes(36792000)  // 70 years = 70 * 365 * 24 * 60
                         .build();
                 accountManagementService.lockAccount(lockRequest);
             } else {

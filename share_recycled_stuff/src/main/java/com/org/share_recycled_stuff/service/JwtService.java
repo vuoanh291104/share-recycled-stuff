@@ -28,4 +28,8 @@ public interface JwtService {
     boolean isBlacklisted(String token);
 
     void blacklistToken(String token, Duration ttl);
+
+    void blacklistAccountTokens(Long accountId, Duration duration);
+
+    boolean isAccountTokenBlacklisted(Long accountId);
 }
