@@ -1,11 +1,9 @@
 package com.org.share_recycled_stuff.service.impl;
 
-import com.org.share_recycled_stuff.dto.request.AdminPostReviewRequest;
-import com.org.share_recycled_stuff.dto.request.BulkDeletePostRequest;
-import com.org.share_recycled_stuff.dto.request.PostImageRequest;
-import com.org.share_recycled_stuff.dto.request.PostRequest;
+import com.org.share_recycled_stuff.dto.request.*;
 import com.org.share_recycled_stuff.dto.response.*;
 import com.org.share_recycled_stuff.entity.*;
+import com.org.share_recycled_stuff.entity.enums.PostPurpose;
 import com.org.share_recycled_stuff.entity.enums.PostStatus;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
@@ -19,11 +17,10 @@ import com.org.share_recycled_stuff.service.PostService;
 import com.org.share_recycled_stuff.utils.LocationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -502,4 +499,35 @@ public class PostServiceImpl implements PostService {
         return new PageImpl<>(postResponses, pageable, posts.getTotalElements());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PostSearchResponse> searchPosts(PostSearchRequest filter) {
+        log.debug("Searching posts with filter: {}", filter);
+
+        Pageable pageable = PageRequest.of(
+                filter.getPage(),
+                filter.getSize(),
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        PostPurpose purposeEnum = null;
+        if (StringUtils.hasText(filter.getPurpose())) {
+            try {
+                purposeEnum = PostPurpose.valueOf(filter.getPurpose().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid purpose string provided in filter: {}", filter.getPurpose());
+            }
+        }
+
+        Page<Post> postPage = postRepository.searchPublicPosts(
+                PostStatus.ACTIVE,
+                filter.getKeyword(),
+                filter.getCategoryId(),
+                purposeEnum,
+                filter.getLocation(),
+                pageable
+        );
+
+        return postPage.map(postMapper::toPostSearchResponse);
+    }
 }

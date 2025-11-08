@@ -1,17 +1,14 @@
 package com.org.share_recycled_stuff.mapper;
 
 import com.org.share_recycled_stuff.dto.request.PostRequest;
-import com.org.share_recycled_stuff.dto.response.AdminPostDetailResponse;
-import com.org.share_recycled_stuff.dto.response.PostDetailResponse;
-import com.org.share_recycled_stuff.dto.response.PostResponse;
-import com.org.share_recycled_stuff.entity.Account;
-import com.org.share_recycled_stuff.entity.Category;
-import com.org.share_recycled_stuff.entity.Post;
-import com.org.share_recycled_stuff.entity.User;
+import com.org.share_recycled_stuff.dto.response.*;
+import com.org.share_recycled_stuff.entity.*;
 import com.org.share_recycled_stuff.entity.enums.PostPurpose;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
 import org.mapstruct.*;
+
+import java.util.Optional;
 
 
 @Mapper(componentModel = "spring", uses = {PostImageMapper.class})
@@ -111,5 +108,36 @@ public interface PostMapper {
     @Named("reactionsSize")
     default Integer reactionsSize(java.util.Set<?> reactions) {
         return reactions == null ? 0 : reactions.size();
+    }
+
+    @Mapping(source = "category.name", target = "categoryName")
+    @Mapping(source = "purpose", target = "purposeName")
+    @Mapping(source = "account.user.city", target = "location")
+    @Mapping(source = "account", target = "author", qualifiedByName = "toAuthorSummary")
+    @Mapping(source = "images", target = "thumbnailUrl", qualifiedByName = "getThumbnailUrl")
+    @Mapping(source = "comments", target = "commentCount", qualifiedByName = "commentsSize")
+    @Mapping(source = "reactions", target = "reactionCount", qualifiedByName = "reactionsSize")
+    PostSearchResponse toPostSearchResponse(Post post);
+
+    @Named("toAuthorSummary")
+    default AuthorSummaryResponse toAuthorSummary(Account account) {
+        if (account == null || account.getUser() == null) {
+            return null;
+        }
+        User user = account.getUser();
+        AuthorSummaryResponse author = new AuthorSummaryResponse();
+        author.setId(user.getId());
+        author.setDisplayName(user.getFullName());
+        author.setAvatarUrl(user.getAvatarUrl());
+        return author;
+    }
+
+    @Named("getThumbnailUrl")
+    default String getThumbnailUrl(java.util.Set<PostImages> images) {
+        if (images == null || images.isEmpty()) {
+            return null;
+        }
+        Optional<PostImages> firstImage = images.stream().findFirst();
+        return firstImage.map(PostImages::getImageUrl).orElse(null);
     }
 }

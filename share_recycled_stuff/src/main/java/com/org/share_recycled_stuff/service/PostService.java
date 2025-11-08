@@ -3,6 +3,7 @@ package com.org.share_recycled_stuff.service;
 import com.org.share_recycled_stuff.dto.request.AdminPostReviewRequest;
 import com.org.share_recycled_stuff.dto.request.BulkDeletePostRequest;
 import com.org.share_recycled_stuff.dto.request.PostRequest;
+import com.org.share_recycled_stuff.dto.request.PostSearchRequest;
 import com.org.share_recycled_stuff.dto.response.*;
 import com.org.share_recycled_stuff.entity.enums.PostStatus;
 import org.springframework.data.domain.Page;
@@ -48,4 +49,6 @@ public interface PostService {
 
     // Main page feed
     Page<PostDetailResponse> getMainPageFeed(String clientIp, Pageable pageable);
+
+    Page<PostSearchResponse> searchPosts(PostSearchRequest filter);
 }

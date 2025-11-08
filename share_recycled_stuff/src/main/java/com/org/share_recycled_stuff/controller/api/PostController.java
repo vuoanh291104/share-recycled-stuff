@@ -2,10 +2,8 @@ package com.org.share_recycled_stuff.controller.api;
 
 import com.org.share_recycled_stuff.config.CustomUserDetail;
 import com.org.share_recycled_stuff.dto.request.PostRequest;
-import com.org.share_recycled_stuff.dto.response.ApiResponse;
-import com.org.share_recycled_stuff.dto.response.CommentResponse;
-import com.org.share_recycled_stuff.dto.response.PostDetailResponse;
-import com.org.share_recycled_stuff.dto.response.PostResponse;
+import com.org.share_recycled_stuff.dto.request.PostSearchRequest;
+import com.org.share_recycled_stuff.dto.response.*;
 import com.org.share_recycled_stuff.service.PostService;
 import com.org.share_recycled_stuff.utils.IpUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -334,6 +332,40 @@ public class PostController {
                         .path(httpRequest.getRequestURI())
                         .timestamp(Instant.now().toString())
                         .result(posts)
+                        .build()
+        );
+    }
+    @Operation(
+            summary = "Search public posts",
+            description = "Tìm kiếm và lọc các bài đăng đã được duyệt dựa trên từ khóa, phân loại, địa điểm, mục đích."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Tìm kiếm thành công. Trả về ApiResponse<Page<PostSearchResponse>>."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Tham số lọc không hợp lệ. Trả về ApiResponse lỗi."
+            )
+    })
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<Page<PostSearchResponse>>> searchPosts(
+            @Parameter(
+                    description = "Các tham số lọc. (Các trường như page, size, keyword, categoryId, location, purpose đều là query param)",
+                    required = true
+            )
+            @Valid @ModelAttribute PostSearchRequest filter,
+            HttpServletRequest httpRequest
+    ) {
+        Page<PostSearchResponse> results = postService.searchPosts(filter);
+        return ResponseEntity.ok(
+                ApiResponse.<Page<PostSearchResponse>>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Tìm kiếm bài đăng thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .result(results)
                         .build()
         );
     }
