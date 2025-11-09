@@ -2,6 +2,7 @@ package com.org.share_recycled_stuff.service.impl;
 
 import com.org.share_recycled_stuff.dto.request.DelegationRequest;
 import com.org.share_recycled_stuff.dto.response.DelegationResponse;
+import com.org.share_recycled_stuff.dto.response.ProxySellerInfoResponse;
 import com.org.share_recycled_stuff.entity.Account;
 import com.org.share_recycled_stuff.entity.ApprovedDelegationRequests;
 import com.org.share_recycled_stuff.entity.DelegationImages;
@@ -386,5 +387,10 @@ public class DelegationServiceImpl implements DelegationService {
                 "DelegationRequest",
                 delegationId
         );
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProxySellerInfoResponse> getAvailableProxySellers(Pageable pageable) {
+        return accountRepository.findAvailableProxySellers(pageable);
     }
 }

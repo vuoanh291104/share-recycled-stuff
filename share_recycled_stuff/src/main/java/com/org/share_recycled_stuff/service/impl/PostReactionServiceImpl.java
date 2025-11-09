@@ -10,6 +10,7 @@ import com.org.share_recycled_stuff.repository.PostRepository;
 import com.org.share_recycled_stuff.service.PostReactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -21,6 +22,7 @@ public class PostReactionServiceImpl implements PostReactionService {
     private final PostRepository postRepository;
 
     @Override
+    @Transactional
     public boolean toggleReaction(Long postId, Long currentUserId) {
         if (currentUserId == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
@@ -37,9 +39,20 @@ public class PostReactionServiceImpl implements PostReactionService {
 
         if (existingReaction.isPresent()) {
             PostReactions reaction = existingReaction.get();
-            reaction.setReactionType(!reaction.getReactionType());
+            boolean oldReactionType = reaction.getReactionType();
+            boolean newReactionType = !oldReactionType;
+
+            reaction.setReactionType(newReactionType);
             postReactionsRepository.save(reaction);
-            return reaction.getReactionType();
+
+            if (oldReactionType && !newReactionType) {
+                post.setLikeCount(post.getLikeCount() - 1);
+            } else if (!oldReactionType && newReactionType) {
+                post.setLikeCount(post.getLikeCount() + 1);
+            }
+
+            return newReactionType;
+
         } else {
             Account accountReference = new Account();
             accountReference.setId(currentUserId);
@@ -51,6 +64,9 @@ public class PostReactionServiceImpl implements PostReactionService {
                     .build();
 
             postReactionsRepository.save(newReaction);
+
+            post.setLikeCount(post.getLikeCount() + 1);
+
             return true;
         }
     }
