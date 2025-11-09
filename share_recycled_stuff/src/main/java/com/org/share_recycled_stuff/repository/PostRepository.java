@@ -2,6 +2,7 @@ package com.org.share_recycled_stuff.repository;
 
 import com.org.share_recycled_stuff.entity.Account;
 import com.org.share_recycled_stuff.entity.Post;
+import com.org.share_recycled_stuff.entity.enums.PostPurpose;
 import com.org.share_recycled_stuff.entity.enums.PostStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
-public interface PostRepository extends JpaRepository<Post, Long> {
+public interface PostRepository extends JpaRepository<Post, Long>{
 
     @Query("""
             SELECT DISTINCT p FROM Post p 
@@ -141,4 +142,25 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                        @Param("day") Integer day,
                        @Param("month") Integer month,
                        @Param("year") Integer year);
+    @Query("""
+    SELECT p FROM Post p
+    LEFT JOIN p.account a
+    LEFT JOIN a.user u
+    WHERE
+    p.status = :status
+    AND p.deletedAt IS NULL
+    AND (:keyword IS NULL OR (LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.content) LIKE LOWER(CONCAT('%', :keyword, '%'))))
+    AND (:categoryId IS NULL OR p.category.id = :categoryId)
+    AND (:purpose IS NULL OR p.purpose = :purpose)
+    AND (:location IS NULL OR u.city = :location) 
+    ORDER BY p.createdAt DESC
+    """)
+    Page<Post> searchPublicPosts(
+            @Param("status") PostStatus status,
+            @Param("keyword") String keyword,
+            @Param("categoryId") Long categoryId,
+            @Param("purpose") PostPurpose purpose,
+            @Param("location") String location,
+            Pageable pageable
+    );
 }
