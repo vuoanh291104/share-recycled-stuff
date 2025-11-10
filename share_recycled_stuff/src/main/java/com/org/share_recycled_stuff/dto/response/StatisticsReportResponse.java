@@ -18,4 +18,7 @@ public class StatisticsReportResponse {
 
     @Schema(description = "Detailed statistics for posts")
     private PostStats postStats;
+
+    @Schema(description = "Detailed statistics for Sales and Revenue")
+    private SalesAndRevenueStats salesAndRevenueStats;
 }

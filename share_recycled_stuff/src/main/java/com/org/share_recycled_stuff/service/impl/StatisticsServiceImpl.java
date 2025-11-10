@@ -3,6 +3,7 @@ package com.org.share_recycled_stuff.service.impl;
 import com.org.share_recycled_stuff.dto.request.StatisticsFilterRequest;
 import com.org.share_recycled_stuff.dto.response.DelegationStats;
 import com.org.share_recycled_stuff.dto.response.PostStats;
+import com.org.share_recycled_stuff.dto.response.SalesAndRevenueStats;
 import com.org.share_recycled_stuff.dto.response.StatisticsReportResponse;
 import com.org.share_recycled_stuff.entity.Account;
 import com.org.share_recycled_stuff.entity.enums.DelegationRequestsStatus;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 @Service
@@ -35,10 +37,11 @@ public class StatisticsServiceImpl implements StatisticsService {
 
         PostStats postStats = getPostStats(proxySellerAccount, filters);
         DelegationStats delegationStats = getDelegationStats(proxySellerAccount, filters);
-
+        SalesAndRevenueStats salesStats = getSalesAndRevenueStats(proxySellerAccount, filters);
         return StatisticsReportResponse.builder()
                 .postStats(postStats)
                 .delegationStats(delegationStats)
+                .salesAndRevenueStats(salesStats)
                 .build();
     }
 
@@ -115,6 +118,36 @@ public class StatisticsServiceImpl implements StatisticsService {
                 .selling(selling)
                 .sold(sold)
                 .paymentCompleted(paymentCompleted)
+                .build();
+    }
+    private SalesAndRevenueStats getSalesAndRevenueStats(Optional<Account> account, StatisticsFilterRequest filters) {
+
+        Account accountFilter = account.orElse(null);
+        Integer day = filters.getDay();
+        Integer month = filters.getMonth();
+        Integer year = filters.getYear();
+
+        DelegationRequestsStatus soldStatus = DelegationRequestsStatus.PAYMENT_COMPLETED;
+
+        long totalOrders = delegationRequestsRepository.countFilteredBySoldDate(
+                accountFilter, soldStatus, day, month, year
+        );
+
+        BigDecimal totalRevenue = delegationRequestsRepository.sumRevenueFiltered(
+                accountFilter, soldStatus, day, month, year
+        );
+
+        BigDecimal totalProfit = delegationRequestsRepository.sumProfitFiltered(
+                accountFilter, soldStatus, day, month, year
+        );
+
+        totalRevenue = (totalRevenue == null) ? BigDecimal.ZERO : totalRevenue;
+        totalProfit = (totalProfit == null) ? BigDecimal.ZERO : totalProfit;
+
+        return SalesAndRevenueStats.builder()
+                .totalCompletedOrders(totalOrders)
+                .totalRevenue(totalRevenue)
+                .totalProfit(totalProfit)
                 .build();
     }
 }

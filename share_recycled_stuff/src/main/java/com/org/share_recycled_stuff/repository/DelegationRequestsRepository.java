@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 @Repository
@@ -47,6 +48,39 @@ public interface DelegationRequestsRepository extends JpaRepository<DelegationRe
                        @Param("month") Integer month,
                        @Param("year") Integer year);
 
-    Page<DelegationRequests> findByProxySellerId(Long accountId, Pageable pageable);
-    Page<DelegationRequests> findByCustomerId(Long accountId, Pageable pageable);
+    @Query("SELECT SUM(d.soldPrice) FROM DelegationRequests d " +
+            "WHERE (:account IS NULL OR d.proxySeller = :account) " +
+            "AND (:status IS NULL OR d.status = :status) " +
+            "AND (:day IS NULL OR DAY(d.soldDate) = :day) " +
+            "AND (:month IS NULL OR MONTH(d.soldDate) = :month) " +
+            "AND (:year IS NULL OR YEAR(d.soldDate) = :year)")
+    BigDecimal sumRevenueFiltered(@Param("account") Account account,
+                                  @Param("status") DelegationRequestsStatus status,
+                                  @Param("day") Integer day,
+                                  @Param("month") Integer month,
+                                  @Param("year") Integer year);
+
+    @Query("SELECT SUM(d.commissionFee) FROM DelegationRequests d " +
+            "WHERE (:account IS NULL OR d.proxySeller = :account) " +
+            "AND (:status IS NULL OR d.status = :status) " +
+            "AND (:day IS NULL OR DAY(d.soldDate) = :day) " +
+            "AND (:month IS NULL OR MONTH(d.soldDate) = :month) " +
+            "AND (:year IS NULL OR YEAR(d.soldDate) = :year)")
+    BigDecimal sumProfitFiltered(@Param("account") Account account,
+                                 @Param("status") DelegationRequestsStatus status,
+                                 @Param("day") Integer day,
+                                 @Param("month") Integer month,
+                                 @Param("year") Integer year);
+
+    @Query("SELECT COUNT(d) FROM DelegationRequests d " +
+            "WHERE (:account IS NULL OR d.proxySeller = :account) " +
+            "AND (:status IS NULL OR d.status = :status) " +
+            "AND (:day IS NULL OR DAY(d.soldDate) = :day) " +
+            "AND (:month IS NULL OR MONTH(d.soldDate) = :month) " +
+            "AND (:year IS NULL OR YEAR(d.soldDate) = :year)")
+    long countFilteredBySoldDate(@Param("account") Account account,
+                                 @Param("status") DelegationRequestsStatus status,
+                                 @Param("day") Integer day,
+                                 @Param("month") Integer month,
+                                 @Param("year") Integer year);
 }
