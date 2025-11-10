@@ -1,6 +1,7 @@
 package com.org.share_recycled_stuff.repository;
 
 import com.org.share_recycled_stuff.entity.Messages;
+import com.org.share_recycled_stuff.repository.projection.RecentChatUserProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,14 +31,14 @@ public interface MessagesRepository extends JpaRepository<Messages, Long> {
     List<Long> findRecentChatUserIds(@Param("userId") Long userId);
 
     /**
-     * Get detailed list of recent chat conversations with the last message
-     * This returns a projection with user ID and the timestamp of the most recent message
+     * Get list of recent chat user IDs with their last message time
+     * Returns user ID and timestamp of the most recent message using interface projection
      */
     @Query("""
             SELECT CASE 
-                WHEN m.sender.id = :userId THEN m.receiver 
-                ELSE m.sender 
-            END as chatUser,
+                WHEN m.sender.id = :userId THEN m.receiver.id 
+                ELSE m.sender.id 
+            END as otherUserId,
             MAX(m.createdAt) as lastMessageTime
             FROM Messages m
             WHERE m.sender.id = :userId OR m.receiver.id = :userId
@@ -47,7 +48,7 @@ public interface MessagesRepository extends JpaRepository<Messages, Long> {
             END
             ORDER BY lastMessageTime DESC
             """)
-    List<Object[]> findRecentChatUsersWithLastMessageTime(@Param("userId") Long userId);
+    List<RecentChatUserProjection> findRecentChatUsersWithLastMessageTime(@Param("userId") Long userId);
 
     /**
      * Count unread messages from a specific sender to the current user
