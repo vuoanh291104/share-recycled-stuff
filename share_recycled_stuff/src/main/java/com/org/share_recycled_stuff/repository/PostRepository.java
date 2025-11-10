@@ -22,7 +22,8 @@ public interface PostRepository extends JpaRepository<Post, Long>{
             LEFT JOIN FETCH p.images 
             LEFT JOIN FETCH p.account a 
             LEFT JOIN FETCH a.user 
-            LEFT JOIN FETCH p.category 
+            LEFT JOIN FETCH p.category
+            LEFT JOIN FETCH p.reactions 
             WHERE p.account.id = :accountId 
             AND p.status = :status AND p.deletedAt IS NULL 
             ORDER BY p.createdAt DESC""")
@@ -38,6 +39,7 @@ public interface PostRepository extends JpaRepository<Post, Long>{
             LEFT JOIN FETCH p.account a 
             LEFT JOIN FETCH a.user
             LEFT JOIN FETCH p.category
+            LEFT JOIN FETCH p.reactions
             WHERE p.account.id = :accountId 
             AND p.deletedAt IS NULL 
             ORDER BY p.createdAt DESC""")
@@ -123,6 +125,7 @@ public interface PostRepository extends JpaRepository<Post, Long>{
             LEFT JOIN FETCH p.account a
             LEFT JOIN FETCH a.user u
             LEFT JOIN FETCH p.category
+            LEFT JOIN FETCH p.reactions r
             WHERE p.status = :status
             AND p.deletedAt IS NULL
             ORDER BY p.createdAt DESC
