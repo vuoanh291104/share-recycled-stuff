@@ -1,5 +1,6 @@
 package com.org.share_recycled_stuff.repository;
 
+import com.org.share_recycled_stuff.dto.response.ProxySellerInfoResponse;
 import com.org.share_recycled_stuff.entity.Account;
 import com.org.share_recycled_stuff.entity.enums.Role;
 import jakarta.persistence.LockModeType;
@@ -36,4 +37,11 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
                                      @Param("role") Role role,
                                      @Param("isLocked") Boolean isLocked,
                                      Pageable pageable);
+    @Query("SELECT new com.org.share_recycled_stuff.dto.response.ProxySellerInfoResponse(" +
+            "a.id, a.user.fullName, a.user.avatarUrl) " +
+            "FROM Account a JOIN a.user u JOIN a.roles ur " +
+            "WHERE ur.roleType = com.org.share_recycled_stuff.entity.enums.Role.PROXY_SELLER " +
+            "AND a.isLocked = false " +
+            "AND a.isVerified = true")
+    Page<ProxySellerInfoResponse> findAvailableProxySellers(Pageable pageable);
 }

@@ -52,6 +52,9 @@ public class Post {
     @Column(name = "view_count")
     private Integer viewCount = 0;
 
+    @Column(name = "like_count")
+    private Integer likeCount = 0;
+
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<PostImages> images = new HashSet<>();
 
@@ -79,5 +82,12 @@ public class Post {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public Integer getLikeCount() {
+        if (this.likeCount == null) {
+            return 0;
+        }
+        return this.likeCount;
     }
 }

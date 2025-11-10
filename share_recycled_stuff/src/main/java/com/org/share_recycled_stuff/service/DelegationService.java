@@ -2,6 +2,7 @@ package com.org.share_recycled_stuff.service;
 
 import com.org.share_recycled_stuff.dto.request.DelegationRequest;
 import com.org.share_recycled_stuff.dto.response.DelegationResponse;
+import com.org.share_recycled_stuff.dto.response.ProxySellerInfoResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -26,5 +27,5 @@ public interface DelegationService {
 
     DelegationResponse getDelegationRequestDetail(Long id, Long accountId, String role);
 
-
+    Page<ProxySellerInfoResponse> getAvailableProxySellers(Pageable pageable);
 }

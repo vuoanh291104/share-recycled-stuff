@@ -6,6 +6,7 @@ import com.org.share_recycled_stuff.dto.request.DelegationRejectRequest;
 import com.org.share_recycled_stuff.dto.request.DelegationRequest;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
 import com.org.share_recycled_stuff.dto.response.DelegationResponse;
+import com.org.share_recycled_stuff.dto.response.ProxySellerInfoResponse;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
 import com.org.share_recycled_stuff.service.DelegationService;
@@ -396,4 +397,45 @@ public class DelegationController {
                         .build()
         );
     }
+    @Operation(
+            summary = "Get list of available Proxy Sellers",
+            description = "Customer retrieves a paginated list of all available proxy sellers to send a request to."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Successfully retrieved proxy sellers. Returns ApiResponse<Page<ProxySellerInfoResponse>>."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - JWT token required. Returns ApiResponse with error."
+            )
+    })
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @GetMapping("/proxy-sellers")
+    public ResponseEntity<ApiResponse<Page<ProxySellerInfoResponse>>> getAvailableProxySellers(
+            @Parameter(description = "Page number (0-indexed)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size", example = "10")
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Sort field and direction (field,direction)", example = "user.fullName,asc")
+            @RequestParam(defaultValue = "user.fullName,asc") String sort,
+            HttpServletRequest httpRequest
+    ) {
+        String[] sortParams = sort.split(",");
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortParams[1]), sortParams[0]));
+
+        Page<ProxySellerInfoResponse> responses = delegationService.getAvailableProxySellers(pageable);
+
+        return ResponseEntity.ok(
+                ApiResponse.<Page<ProxySellerInfoResponse>>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Lấy danh sách người bán hộ thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .result(responses)
+                        .build()
+        );
+    }
+
 }
