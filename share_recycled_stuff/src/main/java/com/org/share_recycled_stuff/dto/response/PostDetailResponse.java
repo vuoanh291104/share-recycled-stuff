@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Data
 @Builder
@@ -42,6 +43,9 @@ public class PostDetailResponse {
     @Schema(description = "Number of views", example = "150")
     private Integer viewCount;
 
+    @Schema(description = "Number of likes", example = "150")
+    private Integer likeCount;
+
     @Schema(description = "Post creation timestamp", example = "2024-01-01T10:00:00")
     private LocalDateTime createdAt;
 
@@ -60,6 +64,8 @@ public class PostDetailResponse {
 
     @Schema(description = "List of post images")
     private List<PostImageResponse> images;
+    @Schema(description = "list of liked userID")
+    private Set<Long> likedUserIDs;
 
     @Data
     @Builder

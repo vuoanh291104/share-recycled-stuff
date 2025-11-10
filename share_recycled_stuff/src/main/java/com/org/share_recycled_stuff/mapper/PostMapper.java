@@ -8,7 +8,10 @@ import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
 import org.mapstruct.*;
 
+import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Mapper(componentModel = "spring", uses = {PostImageMapper.class})
@@ -61,9 +64,18 @@ public interface PostMapper {
                 .build();
     }
 
+    @Named("toLikedUserIDs")
+    default Set<Long> mapReactionsToUserIDs(Post post) {
+        if (post.getReactions() == null) return Set.of();
+        return post.getReactions().stream()
+                .filter(r -> Boolean.TRUE.equals(r.getReactionType())) // chỉ type=true
+                .map(r -> r.getAccount().getUser().getId())
+                .collect(Collectors.toSet());
+    }
     @Mapping(source = "account", target = "author", qualifiedByName = "toUserInfo")
     @Mapping(source = "images", target = "images")
     @Mapping(source = "category.name", target = "category")
+    @Mapping(source = ".", target = "likedUserIDs", qualifiedByName = "toLikedUserIDs")
     PostDetailResponse toPostDetailResponse(Post post);
 
     @BeanMapping(ignoreByDefault = true)

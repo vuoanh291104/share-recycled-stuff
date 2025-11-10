@@ -128,6 +128,7 @@ public class PostServiceImpl implements PostService {
 
 
     @Override
+    @Transactional
     public Page<PostDetailResponse> getUserPosts(Long userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
@@ -141,6 +142,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional
     public Page<PostDetailResponse> getMyPosts(Long accountId, Pageable pageable) {
         isAccountExist(accountId);
         Page<Post> posts = postRepository.findByAccountIdAndDeletedAtIsNull(accountId, pageable);
