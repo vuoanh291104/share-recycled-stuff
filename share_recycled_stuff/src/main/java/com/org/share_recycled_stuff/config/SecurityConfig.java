@@ -88,7 +88,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/profile/**").hasAnyRole("ADMIN", "CUSTOMER", "PROXY_SELLER")
                         // User endpoints
-                        .requestMatchers("/api/user/**").hasAnyRole("CUSTOMER", "ADMIN")
+                        .requestMatchers("/api/user/**").hasAnyRole("CUSTOMER","PROXY_SELLER", "ADMIN")
                         // Proxy Seller endpoints
                         .requestMatchers("/api/proxy-seller/**").hasAnyRole("PROXY_SELLER", "ADMIN")
                         // Notification endpoints (all authenticated users)

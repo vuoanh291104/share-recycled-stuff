@@ -1,6 +1,7 @@
 package com.org.share_recycled_stuff.service.impl;
 
 import com.org.share_recycled_stuff.dto.request.ReviewRequest;
+import com.org.share_recycled_stuff.dto.response.RatingStats;
 import com.org.share_recycled_stuff.dto.response.ReviewResponse;
 import com.org.share_recycled_stuff.entity.Account;
 import com.org.share_recycled_stuff.entity.User;
@@ -17,6 +18,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Optional;
 
 @Service
@@ -59,7 +62,9 @@ public class UserReviewsServiceImpl implements UserReviewsService {
         }
 
         UserReviews savedReview = userReviewsRepository.save(reviewToSave);
+        updateAverageRating(reviewedUser.getId());
         return ReviewResponse.fromEntity(savedReview);
+
     }
 
     @Override
@@ -92,6 +97,7 @@ public class UserReviewsServiceImpl implements UserReviewsService {
         existingReview.setComment(request.getComment());
 
         UserReviews updatedReview = userReviewsRepository.save(existingReview);
+        updateAverageRating(updatedReview.getReviewedUser().getId());
         return ReviewResponse.fromEntity(updatedReview);
     }
 
@@ -109,6 +115,27 @@ public class UserReviewsServiceImpl implements UserReviewsService {
             throw new AppException(ErrorCode.CANNOT_DELETE_REVIEW);
         }
 
+        Long reviewedUserId = existingReview.getReviewedUser().getId();
+
         userReviewsRepository.delete(existingReview);
+
+        updateAverageRating(reviewedUserId);
+    }
+
+    private void updateAverageRating(Long reviewedUserId) {
+        RatingStats stats = userReviewsRepository.getRatingStatsForUser(reviewedUserId);
+
+        User reviewedUser = userRepository.findById(reviewedUserId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        BigDecimal newAverage = stats.getAverage()
+                .setScale(1, RoundingMode.HALF_UP);
+
+        Integer newTotal = stats.getCount().intValue();
+
+        reviewedUser.setRatingAverage(newAverage);
+        reviewedUser.setTotalRatings(newTotal);
+
+        userRepository.save(reviewedUser);
     }
 }
