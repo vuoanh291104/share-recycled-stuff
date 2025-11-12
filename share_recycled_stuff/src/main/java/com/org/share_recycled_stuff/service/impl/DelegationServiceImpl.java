@@ -23,6 +23,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -283,6 +285,7 @@ public class DelegationServiceImpl implements DelegationService {
         }
 
         request.setStatus(DelegationRequestsStatus.PRODUCT_RECEIVED);
+        request.setProductDeliveryDate(LocalDateTime.now());
         delegationRequestsRepository.save(request);
 
         String message = String.format("Proxy seller đã xác nhận nhận được sản phẩm \"%s\" của bạn.",
@@ -330,7 +333,7 @@ public class DelegationServiceImpl implements DelegationService {
     }
 
     @Override
-    public void markAsSold(Long delegationId, Long proxySellerId) {
+    public void markAsSold(Long delegationId, Long proxySellerId, BigDecimal soldPrice) {
         DelegationRequests request = delegationRequestsRepository.findById(delegationId)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST, "Không tìm thấy yêu cầu ủy thác."));
 
@@ -343,11 +346,15 @@ public class DelegationServiceImpl implements DelegationService {
         }
 
         request.setStatus(DelegationRequestsStatus.SOLD);
+        request.setSoldPrice(soldPrice);
+        request.setSoldDate(LocalDateTime.now());
+
         delegationRequestsRepository.save(request);
 
         String message = String.format("Sản phẩm ký gửi \"%s\" của bạn đã được bán thành công.",
-                request.getProductDescription());
-
+                request.getProductDescription(),
+                soldPrice.toString()
+        );
         notificationService.createNotification(
                 request.getCustomer().getId(),
                 "Sản phẩm đã bán",
@@ -373,6 +380,7 @@ public class DelegationServiceImpl implements DelegationService {
         }
 
         request.setStatus(DelegationRequestsStatus.PAYMENT_COMPLETED);
+        request.setPaymentToCustomerDate(LocalDateTime.now());
         delegationRequestsRepository.save(request);
 
         String message = String.format("Thanh toán cho sản phẩm ký gửi \"%s\" đã được hoàn tất. Cảm ơn bạn!",

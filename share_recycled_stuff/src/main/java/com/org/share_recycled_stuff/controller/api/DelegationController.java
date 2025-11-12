@@ -4,6 +4,7 @@ import com.org.share_recycled_stuff.config.CustomUserDetail;
 import com.org.share_recycled_stuff.dto.request.DelegationApproveRequest;
 import com.org.share_recycled_stuff.dto.request.DelegationRejectRequest;
 import com.org.share_recycled_stuff.dto.request.DelegationRequest;
+import com.org.share_recycled_stuff.dto.request.MarkAsSoldRequest;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
 import com.org.share_recycled_stuff.dto.response.DelegationResponse;
 import com.org.share_recycled_stuff.dto.response.ProxySellerInfoResponse;
@@ -355,12 +356,15 @@ public class DelegationController {
     public ResponseEntity<ApiResponse<Void>> markRequestAsSold(
             @Parameter(description = "Delegation request ID", required = true, example = "1")
             @PathVariable Long id,
+            @Valid @RequestBody MarkAsSoldRequest request,
             @AuthenticationPrincipal CustomUserDetail userDetail,
             HttpServletRequest httpRequest
     ) {
         delegationService.markAsSold(
                 id,
-                userDetail.getAccountId()
+                userDetail.getAccountId(),
+                request.getSoldPrice()
+
         );
         return ResponseEntity.ok(
                 ApiResponse.<Void>builder()

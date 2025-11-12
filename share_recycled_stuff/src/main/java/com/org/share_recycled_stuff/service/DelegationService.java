@@ -6,6 +6,8 @@ import com.org.share_recycled_stuff.dto.response.ProxySellerInfoResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
+
 public interface DelegationService {
     DelegationResponse createDelegationRequest(DelegationRequest request, Long customerId);
 
@@ -19,7 +21,7 @@ public interface DelegationService {
 
     void markAsSelling(Long delegationId, Long proxySellerId);
 
-    void markAsSold(Long delegationId, Long proxySellerId);
+    void markAsSold(Long delegationId, Long proxySellerId, BigDecimal soldPrice);
 
     void markAsPaymentCompleted(Long delegationId, Long proxySellerId);
 

@@ -1,5 +1,7 @@
 package com.org.share_recycled_stuff.repository;
 
+import com.org.share_recycled_stuff.dto.response.RatingStats;
+import com.org.share_recycled_stuff.entity.User;
 import com.org.share_recycled_stuff.entity.UserReviews;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,4 +23,10 @@ public interface UserReviewsRepository extends JpaRepository<UserReviews, Long> 
             @Param("reviewerId") Long reviewerId,
             @Param("reviewedUserId") Long reviewedUserId
     );
+
+    @Query("SELECT new com.org.share_recycled_stuff.dto.response.RatingStats(AVG(r.rating), COUNT(r)) " +
+            "FROM UserReviews r WHERE r.reviewedUser.id = :userId")
+    RatingStats getRatingStatsForUser(@Param("userId") Long userId);
+
+    boolean existsByReviewerAndReviewedUser(User reviewer, User reviewedUser);
 }
