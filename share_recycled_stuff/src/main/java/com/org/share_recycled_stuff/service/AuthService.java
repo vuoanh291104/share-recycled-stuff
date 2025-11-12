@@ -22,4 +22,6 @@ public interface AuthService {
     String resetPassword(ResetPasswordRequest request);
 
     String changePassword(ChangePasswordRequest request);
+
+    LoginResponse refreshToken(RefreshTokenRequest request);
 }

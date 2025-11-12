@@ -77,6 +77,52 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
     }
 
+    @Operation(
+            summary = "Refresh authentication tokens",
+            description = "Exchange a valid refresh token for a new access token (and refresh token)."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Token refresh successful. Returns ApiResponse<LoginResponse> with new tokens."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid request payload. Returns ApiResponse with error details."
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Refresh token invalid or expired. Returns ApiResponse with error details."
+            )
+    })
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Refresh token payload",
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = RefreshTokenRequest.class)
+                    )
+            )
+            @Valid @RequestBody RefreshTokenRequest request,
+            HttpServletRequest httpRequest) {
+
+        log.info("Refresh token request from IP: {}", getClientIpAddress(httpRequest));
+
+        LoginResponse response = authService.refreshToken(request);
+
+        ApiResponse<LoginResponse> apiResponse = ApiResponse.<LoginResponse>builder()
+                .code(HttpStatus.OK.value())
+                .message("Refresh token thành công")
+                .path(httpRequest.getRequestURI())
+                .timestamp(Instant.now().toString())
+                .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
     private String getClientIpAddress(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
