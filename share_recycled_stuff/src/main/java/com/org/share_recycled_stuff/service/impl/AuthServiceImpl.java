@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -238,8 +239,7 @@ public class AuthServiceImpl implements AuthService {
 
     private LoginResponse.UserInfo buildUserInfo(Account account) {
         User user = account.getUser();
-        String role = account.getRoles().isEmpty() ? "CUSTOMER" :
-                account.getRoles().iterator().next().getRoleType().name();
+        String role = resolveHighestPriorityRole(account);
 
         return LoginResponse.UserInfo.builder()
                 .accountId(account.getId())
@@ -248,6 +248,14 @@ public class AuthServiceImpl implements AuthService {
                 .avatarUrl(user != null ? user.getAvatarUrl() : null)
                 .role(role)
                 .build();
+    }
+
+    private String resolveHighestPriorityRole(Account account) {
+        return account.getRoles().stream()
+                .map(UserRole::getRoleType)
+                .max(Comparator.comparingInt(Role::getCode))
+                .orElse(Role.CUSTOMER)
+                .name();
     }
 
     @Override
@@ -382,5 +390,54 @@ public class AuthServiceImpl implements AuthService {
 
         log.info("Password changed successfully for email: {}", account.getEmail());
         return "Đổi mật khẩu thành công";
+    }
+
+    @Override
+    public LoginResponse refreshToken(RefreshTokenRequest request) {
+        log.info("Processing refresh token request");
+
+        String refreshToken = request.getRefreshToken();
+
+        if (!StringUtils.hasText(refreshToken)) {
+            throw new AppException(ErrorCode.INVALID_REQUEST, "Refresh token is required");
+        }
+
+        if (!jwtService.validateToken(refreshToken)) {
+            throw new AppException(ErrorCode.INVALID_TOKEN, "Refresh token is invalid or expired");
+        }
+
+        if (!jwtService.isRefreshToken(refreshToken)) {
+            throw new AppException(ErrorCode.INVALID_TOKEN, "Provided token is not a refresh token");
+        }
+
+        if (jwtService.isBlacklisted(refreshToken)) {
+            throw new AppException(ErrorCode.INVALID_TOKEN, "Refresh token has been invalidated");
+        }
+
+        Long accountId = jwtService.getAccountIdFromToken(refreshToken);
+
+        Account account = accountRepository.findByIdWithRoles(accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        if (account.isCurrentlyLocked()) {
+            throw new AppException(ErrorCode.ACCOUNT_LOCKED);
+        }
+
+        if (!account.isVerified()) {
+            throw new AppException(ErrorCode.ACCOUNT_DISABLED);
+        }
+
+        CustomUserDetail userDetail = new CustomUserDetail(account, account.getRoles());
+        JwtToken tokens = jwtService.generateTokens(userDetail);
+
+        log.info("Refresh token processed successfully for accountId: {}", accountId);
+
+        return LoginResponse.builder()
+                .tokenType(tokens.getTokenType())
+                .accessToken(tokens.getAccessToken())
+                .refreshToken(tokens.getRefreshToken())
+                .expiresIn(tokens.getExpiresIn())
+                .userInfo(buildUserInfo(account))
+                .build();
     }
 }

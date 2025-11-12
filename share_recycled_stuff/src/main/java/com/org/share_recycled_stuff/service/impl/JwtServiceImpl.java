@@ -1,6 +1,7 @@
 package com.org.share_recycled_stuff.service.impl;
 
 import com.org.share_recycled_stuff.config.CustomUserDetail;
+import com.org.share_recycled_stuff.entity.enums.Role;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
 import com.org.share_recycled_stuff.security.jwt.JwtToken;
@@ -18,11 +19,13 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -48,9 +51,8 @@ public class JwtServiceImpl implements JwtService {
         Date accessTokenExpiryDate = new Date(now.getTime() + accessTokenExpiration);
         Date refreshTokenExpiryDate = new Date(now.getTime() + refreshTokenExpiration);
 
-        Set<String> roles = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toSet());
+        Role primaryRole = resolveHighestPriorityRole(userDetails.getAuthorities());
+        Set<String> roles = Collections.singleton(primaryRole.name());
 
         String jti = UUID.randomUUID().toString();
 
@@ -58,6 +60,7 @@ public class JwtServiceImpl implements JwtService {
                 .setSubject(userDetails.getUsername())
                 .claim("accountId", userDetails.getAccountId())
                 .claim("roles", roles)
+                .claim("role", primaryRole.name())
                 .claim("tokenType", "ACCESS")
                 .setId(jti)
                 .setIssuedAt(now)
@@ -287,6 +290,35 @@ public class JwtServiceImpl implements JwtService {
         } catch (Exception e) {
             log.error("Error checking account blacklist for accountId: {}", accountId, e);
             return false; // Fail-safe: allow the token on error
+        }
+    }
+
+    private Role resolveHighestPriorityRole(Collection<? extends GrantedAuthority> authorities) {
+        return authorities.stream()
+                .map(GrantedAuthority::getAuthority)
+                .map(this::normalizeAuthority)
+                .map(this::toRole)
+                .filter(Objects::nonNull)
+                .max(java.util.Comparator.comparingInt(Role::getCode))
+                .orElse(Role.CUSTOMER);
+    }
+
+    private String normalizeAuthority(String authority) {
+        if (authority == null) {
+            return null;
+        }
+        return authority.startsWith("ROLE_") ? authority.substring(5) : authority;
+    }
+
+    private Role toRole(String roleName) {
+        if (!org.springframework.util.StringUtils.hasText(roleName)) {
+            return null;
+        }
+        try {
+            return Role.valueOf(roleName);
+        } catch (IllegalArgumentException ex) {
+            log.warn("Unknown role authority encountered when generating JWT: {}", roleName);
+            return null;
         }
     }
 }
