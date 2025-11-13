@@ -12,9 +12,9 @@ public class SalesAndRevenueStats {
     @Schema(description = "Tổng số đơn hàng đã bán thành công (lượt bán)")
     private long totalCompletedOrders;
 
-    @Schema(description = "Tổng doanh thu (tổng tiền bán được - soldPrice)")
-    private BigDecimal totalRevenue;
+    @Schema(description = "Tổng doanh thu bán hàng (tổng tiền bán được - soldPrice)")
+    private BigDecimal totalSalesAmount;
 
-    @Schema(description = "Tổng lợi nhuận (tiền chiết khấu - commissionFee)")
-    private BigDecimal totalProfit;
+    @Schema(description = "Tổng hoa hồng Proxy kiếm được (SUM(commissionFee))")
+    private BigDecimal totalProxyCommission;
 }
