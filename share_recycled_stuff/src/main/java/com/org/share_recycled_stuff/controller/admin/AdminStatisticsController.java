@@ -2,6 +2,7 @@ package com.org.share_recycled_stuff.controller.admin;
 
 import com.org.share_recycled_stuff.dto.request.StatisticsFilterRequest;
 import com.org.share_recycled_stuff.dto.response.ApiResponse;
+import com.org.share_recycled_stuff.dto.response.StatisticsComparisonResponse;
 import com.org.share_recycled_stuff.dto.response.StatisticsReportResponse;
 import com.org.share_recycled_stuff.service.StatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -85,6 +86,32 @@ public class AdminStatisticsController {
                         .path(httpRequest.getRequestURI())
                         .timestamp(Instant.now().toString())
                         .result(report)
+                        .build()
+        );
+    }
+    @Operation(
+            summary = "So sánh bài đăng (Tháng này so với Tháng trước)",
+            description = "So sánh số lượng bài đăng mới trong tháng hiện tại so với tháng trước đó."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Lấy thống kê so sánh thành công."
+            )
+    })
+    @GetMapping("/posts/comparison")
+    public ResponseEntity<ApiResponse<StatisticsComparisonResponse>> getPostComparison(
+            HttpServletRequest httpRequest
+    ) {
+        StatisticsComparisonResponse comparison = statisticsService.getPostComparison();
+
+        return ResponseEntity.ok(
+                ApiResponse.<StatisticsComparisonResponse>builder()
+                        .code(HttpStatus.OK.value())
+                        .message("Lấy thống kê so sánh bài đăng thành công")
+                        .path(httpRequest.getRequestURI())
+                        .timestamp(Instant.now().toString())
+                        .result(comparison)
                         .build()
         );
     }

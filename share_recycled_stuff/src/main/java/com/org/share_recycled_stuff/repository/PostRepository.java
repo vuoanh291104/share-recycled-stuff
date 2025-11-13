@@ -166,4 +166,10 @@ public interface PostRepository extends JpaRepository<Post, Long>{
             @Param("location") String location,
             Pageable pageable
     );
+
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.createdAt >= :start AND p.createdAt <= :end")
+    long countByCreatedAtBetween(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 }

@@ -1,10 +1,7 @@
 package com.org.share_recycled_stuff.service.impl;
 
 import com.org.share_recycled_stuff.dto.request.StatisticsFilterRequest;
-import com.org.share_recycled_stuff.dto.response.DelegationStats;
-import com.org.share_recycled_stuff.dto.response.PostStats;
-import com.org.share_recycled_stuff.dto.response.SalesAndRevenueStats;
-import com.org.share_recycled_stuff.dto.response.StatisticsReportResponse;
+import com.org.share_recycled_stuff.dto.response.*;
 import com.org.share_recycled_stuff.entity.Account;
 import com.org.share_recycled_stuff.entity.enums.DelegationRequestsStatus;
 import com.org.share_recycled_stuff.entity.enums.PostStatus;
@@ -17,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Optional;
 
 @Service
@@ -133,21 +132,51 @@ public class StatisticsServiceImpl implements StatisticsService {
                 accountFilter, soldStatus, day, month, year
         );
 
-        BigDecimal totalRevenue = delegationRequestsRepository.sumRevenueFiltered(
+        BigDecimal totalSalesAmount = delegationRequestsRepository.sumRevenueFiltered(
                 accountFilter, soldStatus, day, month, year
         );
 
-        BigDecimal totalProfit = delegationRequestsRepository.sumProfitFiltered(
+        BigDecimal totalProxyCommission = delegationRequestsRepository.sumProfitFiltered(
                 accountFilter, soldStatus, day, month, year
         );
 
-        totalRevenue = (totalRevenue == null) ? BigDecimal.ZERO : totalRevenue;
-        totalProfit = (totalProfit == null) ? BigDecimal.ZERO : totalProfit;
+        totalSalesAmount = (totalSalesAmount == null) ? BigDecimal.ZERO : totalSalesAmount;
+        totalProxyCommission = (totalProxyCommission == null) ? BigDecimal.ZERO : totalProxyCommission;
 
         return SalesAndRevenueStats.builder()
                 .totalCompletedOrders(totalOrders)
-                .totalRevenue(totalRevenue)
-                .totalProfit(totalProfit)
+                .totalSalesAmount(totalSalesAmount)
+                .totalProxyCommission(totalProxyCommission)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StatisticsComparisonResponse getPostComparison() {
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime currentPeriodStart;
+        LocalDateTime previousPeriodStart;
+        LocalDateTime previousPeriodEnd;
+
+        currentPeriodStart = now.withDayOfMonth(1).with(LocalTime.MIN);
+        previousPeriodStart = currentPeriodStart.minusMonths(1);
+        previousPeriodEnd = currentPeriodStart.minusNanos(1);
+
+        long currentCount = postRepository.countByCreatedAtBetween(currentPeriodStart, now);
+        long previousCount = postRepository.countByCreatedAtBetween(previousPeriodStart, previousPeriodEnd);
+
+        double percentageChange = 0.0;
+        if (previousCount > 0) {
+            percentageChange = ((double) (currentCount - previousCount) / previousCount) * 100.0;
+        } else if (currentCount > 0) {
+            percentageChange = 100.0;
+        }
+
+        return StatisticsComparisonResponse.builder()
+                .currentPeriodCount(currentCount)
+                .previousPeriodCount(previousCount)
+                .percentageChange(percentageChange)
                 .build();
     }
 }
