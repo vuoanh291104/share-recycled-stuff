@@ -46,5 +46,14 @@ public class NotificationResponse {
 
     @Schema(description = "Creation timestamp", example = "2024-01-01T10:00:00")
     private LocalDateTime createdAt;
+
+    @Schema(description = "Tổng số tài khoản nhận được thông báo khi broadcast", example = "150")
+    private Long broadcastRecipientCount;
+
+    @Schema(description = "Số lượng kết nối SSE đã được đẩy thông báo khi broadcast", example = "45")
+    private Long broadcastSseDeliveredCount;
+
+    @Schema(description = "Số email đã được gửi khi broadcast", example = "120")
+    private Long broadcastEmailSentCount;
 }
 
