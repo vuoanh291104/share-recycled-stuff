@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProxySellerMonthlyRevenueRepository extends JpaRepository<ProxySellerMonthlyRevenue, Long> {
@@ -65,4 +66,15 @@ public interface ProxySellerMonthlyRevenueRepository extends JpaRepository<Proxy
         LocalDateTime beforeDate, 
         PaymentStatus status
     );
+
+    List<ProxySellerMonthlyRevenue> findByProxySellerIdOrderByYearDescMonthDesc(Long proxySellerId);
+
+    List<ProxySellerMonthlyRevenue> findByProxySellerIdAndPaymentStatusIn(Long proxySellerId, List<PaymentStatus> statuses);
+
+    @Query("SELECT r FROM ProxySellerMonthlyRevenue r WHERE r.proxySeller.id = :proxySellerId AND r.id IN :revenueIds AND r.paymentStatus IN :statuses")
+    List<ProxySellerMonthlyRevenue> findByIdsAndProxySellerAndStatusIn(Long proxySellerId, List<Long> revenueIds, List<PaymentStatus> statuses);
+
+    Optional<ProxySellerMonthlyRevenue> findByProxySellerIdAndMonthAndYear(Long proxySellerId, int month, int year);
+
+    List<ProxySellerMonthlyRevenue> findByPaymentTxnRef(String paymentTxnRef);
 }

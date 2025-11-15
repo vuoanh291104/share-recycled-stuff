@@ -71,6 +71,9 @@ public class ProxySellerMonthlyRevenue {
     @BatchSize(size = 10)
     private Set<PaymentReminders> paymentReminders = new HashSet<>();
 
+    @Column(name = "payment_txn_ref")
+    private String paymentTxnRef;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

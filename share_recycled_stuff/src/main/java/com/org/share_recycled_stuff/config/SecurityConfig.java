@@ -93,6 +93,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/proxy-seller/**").hasAnyRole("PROXY_SELLER", "ADMIN")
                         // Notification endpoints (all authenticated users)
                         .requestMatchers("/api/notifications/**").authenticated()
+                        .requestMatchers("/api/payment/transaction").permitAll()
                         // Any other request must be authenticated
                         .anyRequest().authenticated()
                 );
