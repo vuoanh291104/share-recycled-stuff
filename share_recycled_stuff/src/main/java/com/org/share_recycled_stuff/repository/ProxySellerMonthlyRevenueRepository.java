@@ -75,4 +75,6 @@ public interface ProxySellerMonthlyRevenueRepository extends JpaRepository<Proxy
     List<ProxySellerMonthlyRevenue> findByIdsAndProxySellerAndStatusIn(Long proxySellerId, List<Long> revenueIds, List<PaymentStatus> statuses);
 
     Optional<ProxySellerMonthlyRevenue> findByProxySellerIdAndMonthAndYear(Long proxySellerId, int month, int year);
+
+    List<ProxySellerMonthlyRevenue> findByPaymentTxnRef(String paymentTxnRef);
 }

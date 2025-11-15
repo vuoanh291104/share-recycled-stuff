@@ -6,6 +6,7 @@ import com.org.share_recycled_stuff.dto.response.PaymentUrlResponse;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
+import java.util.Map;
 
 public interface MonthlyRevenueService {
 
@@ -14,4 +15,6 @@ public interface MonthlyRevenueService {
     List<MonthlyRevenueResponse> getMyUnpaidRevenueRecords(Long proxySellerId);
 
     PaymentUrlResponse createPaymentRequest(PaymentRequest request, Long proxySellerId, HttpServletRequest httpRequest);
+
+    Map<String, String> processVNPayCallback(HttpServletRequest request);
 }

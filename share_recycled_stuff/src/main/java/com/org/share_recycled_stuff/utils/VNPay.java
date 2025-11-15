@@ -22,7 +22,6 @@ public class VNPay {
             byte[] dataBytes = data.getBytes(StandardCharsets.UTF_8);
             byte[] result = hmac512.doFinal(dataBytes);
 
-            // Chuyển byte array sang hex string
             StringBuilder sb = new StringBuilder(2 * result.length);
             for (byte b : result) {
                 sb.append(String.format("%02x", b));
@@ -34,10 +33,6 @@ public class VNPay {
         }
     }
 
-    /**
-     * Lấy địa chỉ IP (cần HttpServletRequest)
-     * (Chúng ta sẽ lấy IP từ Controller và truyền vào)
-     */
     public static String getIpAddress(jakarta.servlet.http.HttpServletRequest request) {
         String ipAddress = request.getHeader("X-FORWARDED-FOR");
         if (ipAddress == null) {
@@ -46,9 +41,6 @@ public class VNPay {
         return ipAddress;
     }
 
-    /**
-     * Tạo mã tham chiếu giao dịch (vnp_TxnRef) ngẫu nhiên
-     */
     public static String getRandomNumber(int len) {
         Random rnd = new Random();
         String chars = "0123456789";
@@ -59,11 +51,7 @@ public class VNPay {
         return sb.toString();
     }
 
-    /**
-     * Sắp xếp và tạo chuỗi hash data
-     */
     public static String getHashData(Map<String, String> fields) {
-        // Sắp xếp các trường theo thứ tự alphabet
         SortedMap<String, String> sortedFields = new TreeMap<>(fields);
 
         return sortedFields.entrySet().stream()

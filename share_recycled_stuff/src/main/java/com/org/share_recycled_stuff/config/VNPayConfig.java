@@ -10,13 +10,18 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 @Setter
 public class VNPayConfig {
-    private String vnpTmnCode;
 
-    private String vnpHashSecret;
+    private String tmnCode;
 
-    private String vnpUrl;
+    private String secretKey;
 
-    private String vnpReturnUrl;
+    private String payUrl;
+
+    private String returnUrl;
+
+    private String apiUrl;
+
+    private String version;
 
     private String vnpIpnUrl;
 }

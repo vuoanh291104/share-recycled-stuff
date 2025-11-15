@@ -81,11 +81,10 @@ public class MonthlyRevenueController {
     public ResponseEntity<ApiResponse<PaymentUrlResponse>> createPaymentRequest(
             @AuthenticationPrincipal CustomUserDetail userDetail,
             @Valid @RequestBody PaymentRequest paymentRequest,
-            HttpServletRequest httpRequest // Thêm HttpServletRequest để lấy IP
+            HttpServletRequest httpRequest
     ) {
         log.info("Proxy Seller {} requests payment for revenue IDs: {}", userDetail.getAccountId(), paymentRequest.getMonthlyRevenueIds());
 
-        // Truyền httpRequest vào service
         PaymentUrlResponse paymentUrl = revenueService.createPaymentRequest(paymentRequest, userDetail.getAccountId(), httpRequest);
 
         return ResponseEntity.ok(
