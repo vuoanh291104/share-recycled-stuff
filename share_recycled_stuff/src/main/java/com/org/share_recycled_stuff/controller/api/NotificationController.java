@@ -130,10 +130,15 @@ public class NotificationController {
 
         NotificationResponse response = notificationService.createNotification(request);
 
+        String message = Boolean.TRUE.equals(request.getBroadcastToAll())
+                ? String.format("Gửi thông báo tới %d tài khoản thành công",
+                response.getBroadcastRecipientCount() != null ? response.getBroadcastRecipientCount() : 0L)
+                : "Tạo thông báo thành công";
+
         return ResponseEntity.ok(
                 ApiResponse.<NotificationResponse>builder()
                         .code(HttpStatus.CREATED.value())
-                        .message("Tạo thông báo thành công")
+                        .message(message)
                         .path(httpRequest.getRequestURI())
                         .timestamp(Instant.now().toString())
                         .result(response)

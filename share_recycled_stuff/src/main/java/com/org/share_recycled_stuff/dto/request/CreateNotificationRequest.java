@@ -1,6 +1,8 @@
 package com.org.share_recycled_stuff.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -16,11 +18,9 @@ import lombok.NoArgsConstructor;
 public class CreateNotificationRequest {
 
     @Schema(
-            description = "Target account ID to receive notification",
-            example = "1",
-            required = true
+            description = "Target account ID to receive notification. Bỏ trống nếu gửi toàn hệ thống.",
+            example = "1"
     )
-    @NotNull(message = "Account ID không được để trống")
     private Long accountId;
 
     @Schema(
@@ -48,12 +48,20 @@ public class CreateNotificationRequest {
     private Integer notificationType;
 
     @Schema(
-            description = "Delivery method (1=IN_APP, 2=EMAIL, 3=BOTH)",
+            description = "Delivery method (1=IN_APP, 2=EMAIL, 3=BOTH). Khi broadcastToAll=true, chỉ cho phép 1 (IN_APP).",
             example = "1",
             defaultValue = "1"
     )
     @Builder.Default
     private Integer deliveryMethod = 1;
+
+    @Schema(
+            description = "Set true để gửi thông báo tới toàn bộ tài khoản trong hệ thống",
+            example = "false",
+            defaultValue = "false"
+    )
+    @Builder.Default
+    private Boolean broadcastToAll = false;
 
     @Schema(
             description = "Related entity type (e.g., POST, COMMENT, DELEGATION)",
@@ -66,5 +74,22 @@ public class CreateNotificationRequest {
             example = "123"
     )
     private Long relatedEntityId;
+
+    @JsonIgnore
+    @AssertTrue(message = "Account ID không được để trống khi không gửi toàn hệ thống")
+    public boolean isValidTargetSelection() {
+        return Boolean.TRUE.equals(broadcastToAll) || accountId != null;
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "Khi gửi broadcast toàn hệ thống, chỉ cho phép deliveryMethod = 1 (IN_APP), không hỗ trợ gửi email")
+    public boolean isValidDeliveryMethodForBroadcast() {
+        // Nếu không phải broadcast, cho phép tất cả delivery methods
+        if (!Boolean.TRUE.equals(broadcastToAll)) {
+            return true;
+        }
+        // Nếu là broadcast, chỉ cho phép deliveryMethod = 1 (IN_APP) hoặc null (sẽ default thành 1)
+        return deliveryMethod == null || deliveryMethod == 1;
+    }
 }
 

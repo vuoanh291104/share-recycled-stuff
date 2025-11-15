@@ -28,5 +28,34 @@ public interface NotificationRepository extends JpaRepository<Notifications, Lon
 
     Page<Notifications> findByAccountIdAndNotificationTypeOrderByCreatedAtDesc(
             Long accountId, Integer notificationType, Pageable pageable);
+
+    // Query để lấy cả notifications của user và broadcast notifications (account IS NULL)
+    @Query("SELECT n FROM Notifications n WHERE (n.account.id = :accountId OR n.account IS NULL) ORDER BY n.createdAt DESC")
+    Page<Notifications> findByAccountIdOrBroadcastOrderByCreatedAtDesc(@Param("accountId") Long accountId, Pageable pageable);
+
+    // Query để lấy unread notifications (bao gồm cả broadcast chưa đọc)
+    @Query("SELECT n FROM Notifications n WHERE " +
+           "(n.account.id = :accountId AND n.isRead = false) OR " +
+           "(n.account IS NULL AND NOT EXISTS " +
+           "(SELECT 1 FROM BroadcastNotificationRead bnr WHERE bnr.notification.id = n.id AND bnr.account.id = :accountId)) " +
+           "ORDER BY n.createdAt DESC")
+    List<Notifications> findUnreadNotificationsIncludingBroadcast(@Param("accountId") Long accountId);
+
+    // Query để đếm unread notifications (bao gồm cả broadcast chưa đọc)
+    @Query("SELECT COUNT(n) FROM Notifications n WHERE " +
+           "(n.account.id = :accountId AND n.isRead = false) OR " +
+           "(n.account IS NULL AND NOT EXISTS " +
+           "(SELECT 1 FROM BroadcastNotificationRead bnr WHERE bnr.notification.id = n.id AND bnr.account.id = :accountId))")
+    Long countUnreadNotificationsIncludingBroadcast(@Param("accountId") Long accountId);
+
+    // Query để lấy notifications theo type (bao gồm cả broadcast)
+    @Query("SELECT n FROM Notifications n WHERE (n.account.id = :accountId OR n.account IS NULL) " +
+           "AND n.notificationType = :notificationType ORDER BY n.createdAt DESC")
+    Page<Notifications> findByAccountIdOrBroadcastAndNotificationTypeOrderByCreatedAtDesc(
+            @Param("accountId") Long accountId, @Param("notificationType") Integer notificationType, Pageable pageable);
+
+    // Query để lấy broadcast notifications (account IS NULL)
+    @Query("SELECT n FROM Notifications n WHERE n.account IS NULL ORDER BY n.createdAt DESC")
+    List<Notifications> findBroadcastNotifications();
 }
 
