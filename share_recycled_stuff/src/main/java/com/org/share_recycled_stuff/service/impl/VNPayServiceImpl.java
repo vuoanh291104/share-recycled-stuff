@@ -76,7 +76,7 @@ public class VNPayServiceImpl implements VNPayService {
 
         } catch (UnsupportedEncodingException e) {
             log.error("VNPay URL encoding failed", e);
-            throw new AppException(ErrorCode.INVALID_REPORT_TARGET, "Failed to create payment URL");
+            throw new AppException(ErrorCode.VNPAY_URL_CREATION_FAILED, "Failed to create payment URL");
         }
     }
 
@@ -116,19 +116,19 @@ public class VNPayServiceImpl implements VNPayService {
             String calculatedHash = hmacSHA512(vnPayConfig.getSecretKey(), hashData.toString());
             if (!vnp_SecureHash.equals(calculatedHash)) {
                 log.warn("VNPay signature invalid. Expected: {}, Got: {}", calculatedHash, vnp_SecureHash);
-                throw new AppException(ErrorCode.INVALID_REPORT_TARGET, "Invalid VNPay signature");
+                throw new AppException(ErrorCode.VNPAY_INVALID_SIGNATURE, "Invalid VNPay signature");
             }
 
             if(!vnPayConfig.getTmnCode().equals(params.get("vnp_TmnCode"))){
                 log.warn("VNPay TmnCode mismatch. Expected: {}, Got: {}", vnPayConfig.getTmnCode(), params.get("vnp_TmnCode"));
-                throw new AppException(ErrorCode.INVALID_REQUEST, "Invalid TmnCode");
+                throw new AppException(ErrorCode.VNPAY_INVALID_TCODE, "Invalid TmnCode");
             }
 
             log.info("VNPay callback validated successfully for TxnRef: {}", params.get("vnp_TxnRef"));
             return params;
         } catch (UnsupportedEncodingException e) {
             log.error("VNPay callback validation failed", e);
-            throw new AppException(ErrorCode.INVALID_REPORT_TARGET, "Failed to validate payment callback");
+            throw new AppException(ErrorCode.VNPAY_VALIDATION_FAILED, "Failed to validate payment callback");
         }
     }
 

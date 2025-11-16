@@ -4,6 +4,7 @@ import com.org.share_recycled_stuff.dto.request.PaymentRequest;
 import com.org.share_recycled_stuff.dto.response.MonthlyRevenueResponse;
 import com.org.share_recycled_stuff.dto.response.PaymentUrlResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Map;
@@ -17,4 +18,5 @@ public interface MonthlyRevenueService {
     PaymentUrlResponse createPaymentRequest(PaymentRequest request, Long proxySellerId, HttpServletRequest httpRequest);
 
     Map<String, String> processVNPayCallback(HttpServletRequest request);
+
 }
