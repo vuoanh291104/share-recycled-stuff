@@ -3,18 +3,13 @@ package com.org.share_recycled_stuff.service.impl;
 import com.org.share_recycled_stuff.dto.request.DelegationRequest;
 import com.org.share_recycled_stuff.dto.response.DelegationResponse;
 import com.org.share_recycled_stuff.dto.response.ProxySellerInfoResponse;
-import com.org.share_recycled_stuff.entity.Account;
-import com.org.share_recycled_stuff.entity.ApprovedDelegationRequests;
-import com.org.share_recycled_stuff.entity.DelegationImages;
-import com.org.share_recycled_stuff.entity.DelegationRequests;
+import com.org.share_recycled_stuff.entity.*;
 import com.org.share_recycled_stuff.entity.enums.DelegationRequestsStatus;
+import com.org.share_recycled_stuff.entity.enums.PaymentStatus;
 import com.org.share_recycled_stuff.exception.AppException;
 import com.org.share_recycled_stuff.exception.ErrorCode;
 import com.org.share_recycled_stuff.mapper.DelegationMapper;
-import com.org.share_recycled_stuff.repository.AccountRepository;
-import com.org.share_recycled_stuff.repository.ApprovedDelegationRequestsRepository;
-import com.org.share_recycled_stuff.repository.DelegationImagesRepository;
-import com.org.share_recycled_stuff.repository.DelegationRequestsRepository;
+import com.org.share_recycled_stuff.repository.*;
 import com.org.share_recycled_stuff.service.DelegationService;
 import com.org.share_recycled_stuff.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +36,7 @@ public class DelegationServiceImpl implements DelegationService {
     private final DelegationImagesRepository delegationImagesRepository;
     private final ApprovedDelegationRequestsRepository approvedDelegationRequestsRepository;
     private final NotificationService notificationService;
+    private final ProxySellerMonthlyRevenueRepository revenueRepository;
 
     @Override
     public DelegationResponse createDelegationRequest(DelegationRequest request, Long customerId) {
@@ -58,6 +54,7 @@ public class DelegationServiceImpl implements DelegationService {
                 .bankAccountNumber(request.getBankAccountNumber())
                 .bankName(request.getBankName())
                 .accountHolderName(request.getAccountHolderName())
+                .commissionRate(new BigDecimal("10.00"))
                 .status(DelegationRequestsStatus.PENDING)
                 .build();
 
@@ -349,7 +346,38 @@ public class DelegationServiceImpl implements DelegationService {
         request.setSoldPrice(soldPrice);
         request.setSoldDate(LocalDateTime.now());
 
-        delegationRequestsRepository.save(request);
+        DelegationRequests savedRequest = delegationRequestsRepository.saveAndFlush(request);
+
+        BigDecimal finalSoldPrice = savedRequest.getSoldPrice();
+        BigDecimal proxyCommission = savedRequest.getCommissionFee();
+        Account proxySeller = savedRequest.getProxySeller();
+        int month = savedRequest.getSoldDate().getMonthValue();
+        int year = savedRequest.getSoldDate().getYear();
+
+        ProxySellerMonthlyRevenue revenueRecord = revenueRepository
+                .findByProxySellerIdAndMonthAndYear(proxySeller.getId(), month, year)
+                .orElseGet(() -> {
+                    return ProxySellerMonthlyRevenue.builder()
+                            .proxySeller(proxySeller)
+                            .month(month)
+                            .year(year)
+                            .totalConsignments(0)
+                            .completedConsignments(0)
+                            .totalSalesAmount(BigDecimal.ZERO)
+                            .totalCommission(BigDecimal.ZERO)
+                            .adminCommissionRate(new BigDecimal("5.00"))
+                            .paymentStatus(PaymentStatus.NOT_DUE)
+                            .build();
+                });
+        BigDecimal finalPriceToAdd = (finalSoldPrice != null) ? finalSoldPrice : BigDecimal.ZERO;
+        BigDecimal commissionToAdd = (proxyCommission != null) ? proxyCommission : BigDecimal.ZERO;
+
+        revenueRecord.setCompletedConsignments(revenueRecord.getCompletedConsignments() + 1);
+        revenueRecord.setTotalSalesAmount(revenueRecord.getTotalSalesAmount().add(finalPriceToAdd));
+        revenueRecord.setTotalCommission(revenueRecord.getTotalCommission().add(commissionToAdd));
+
+        revenueRepository.save(revenueRecord);
+
 
         String message = String.format("Sản phẩm ký gửi \"%s\" của bạn đã được bán thành công.",
                 request.getProductDescription(),

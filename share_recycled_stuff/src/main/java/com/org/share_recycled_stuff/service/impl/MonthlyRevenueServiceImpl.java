@@ -58,7 +58,7 @@ public class MonthlyRevenueServiceImpl implements MonthlyRevenueService {
     @Transactional
     public PaymentUrlResponse createPaymentRequest(PaymentRequest request, Long proxySellerId, HttpServletRequest httpRequest) {
 
-        List<PaymentStatus> payableStatuses = Arrays.asList(PaymentStatus.OVERDUE);
+        List<PaymentStatus> payableStatuses = Arrays.asList(PaymentStatus.OVERDUE, PaymentStatus.PENDING);
 
         List<ProxySellerMonthlyRevenue> recordsToPay = revenueRepository.findByIdsAndProxySellerAndStatusIn(
                 proxySellerId,

@@ -1,7 +1,7 @@
 package com.org.share_recycled_stuff.dto.response;
 
 import com.org.share_recycled_stuff.entity.enums.PaymentStatus;
-import io.swagger.v3.oas.annotations.media.Schema; // Thêm import
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Thông tin doanh thu của Proxy Seller (dùng cho Admin xem)") // Thêm Schema cho class
+@Schema(description = "Thông tin doanh thu của Proxy Seller (dùng cho Admin xem)")
 public class ProxySellerRevenueResponse {
 
     @Schema(description = "ID của Proxy Seller")
