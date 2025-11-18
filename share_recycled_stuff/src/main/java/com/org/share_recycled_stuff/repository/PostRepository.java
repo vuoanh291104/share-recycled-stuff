@@ -139,7 +139,8 @@ public interface PostRepository extends JpaRepository<Post, Long>{
             "AND (:status IS NULL OR p.status = :status) " +
             "AND (:day IS NULL OR DAY(p.createdAt) = :day) " +
             "AND (:month IS NULL OR MONTH(p.createdAt) = :month) " +
-            "AND (:year IS NULL OR YEAR(p.createdAt) = :year)")
+            "AND (:year IS NULL OR YEAR(p.createdAt) = :year)" +
+            "AND (:status IS NOT NULL OR p.deletedAt IS NULL)")
     long countFiltered(@Param("account") Account account,
                        @Param("status") PostStatus status,
                        @Param("day") Integer day,
@@ -167,7 +168,7 @@ public interface PostRepository extends JpaRepository<Post, Long>{
             Pageable pageable
     );
 
-    @Query("SELECT COUNT(p) FROM Post p WHERE p.createdAt >= :start AND p.createdAt <= :end")
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.createdAt >= :start AND p.createdAt <= :end AND p.deletedAt IS NULL")
     long countByCreatedAtBetween(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
