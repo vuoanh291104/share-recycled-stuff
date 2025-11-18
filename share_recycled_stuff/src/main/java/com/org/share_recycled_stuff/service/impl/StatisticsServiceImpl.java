@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -126,7 +128,10 @@ public class StatisticsServiceImpl implements StatisticsService {
         Integer month = filters.getMonth();
         Integer year = filters.getYear();
 
-        DelegationRequestsStatus soldStatus = DelegationRequestsStatus.PAYMENT_COMPLETED;
+        List<DelegationRequestsStatus> soldStatus = Arrays.asList(
+                DelegationRequestsStatus.SOLD,
+                DelegationRequestsStatus.PAYMENT_COMPLETED
+        );
 
         long totalOrders = delegationRequestsRepository.countFilteredBySoldDate(
                 accountFilter, soldStatus, day, month, year
